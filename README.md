@@ -1,4 +1,4 @@
-# [Pattern]
+# Pattern
 
 **Система для кластерного анализа больших и малых данных**
 
@@ -29,8 +29,8 @@
 ## Установка
 
 ```bash
-git clone [адрес репозитория]
-cd [директория проекта]
+git clone https://github.com/Utopialvo/Pattern.git
+cd Pattern
 pip install -r requirements.txt
 ```
 
@@ -63,7 +63,8 @@ project/
 ├── optimization/     - Стратегии оптимизации
 ├── config/           - Валидация конфигураций
 ├── cli/              - Обработка командной строки
-└── main.py           - Точка входа
+├── main.py           - Точка входа в Pattern
+└── Test.ipynb        - Ноутбук с примером
 ```
 
 ## Пример конфигурации
