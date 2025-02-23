@@ -1,0 +1,16 @@
+{
+  "data_source": "pandas",
+  "data_path": "sample.parquet",
+  "algorithm": "kmeans",
+  "params": {
+    "n_clusters": [
+      3,
+      5
+    ],
+    "init": [
+      "k-means++"
+    ]
+  },
+  "metric": "silhouette",
+  "output_path": "best_kmeans.joblib"
+}
