@@ -125,4 +125,56 @@ class Optimizer(ABC):
         Returns:
             dict: Наилучшие найденные параметры
         """
+        
+        pass
+
+
+class ComponentFactory(ABC):
+    """Абстрактная фабрика для создания компонентов системы.
+    Определяет интерфейс для создания основных компонентов системы:
+    - Модели кластеризации
+    - Метрики качества
+    - Оптимизаторы гиперпараметров
+    - Загрузчики данных"""
+    
+    @abstractmethod
+    def create_model(self, identifier: str, config: Dict[str, Any]) -> ClusterModel:
+        """Создает экземпляр модели кластеризации.
+            Args: 
+                identifier (str): Идентификатор модели из регистра 
+                config (dict): Словарь параметров для инициализации 
+            Returns: ClusterModel: Готовый к использованию экземпляр модели"""
+        pass
+    
+    @abstractmethod
+    def create_metric(self, identifier: str) -> Metric:
+        """Создает объект метрики качества.
+        Args:
+            identifier (str): Идентификатор метрики из регистра
+        Returns:
+            Metric: Реализация интерфейса метрики"""
+        
+        pass
+    
+    @abstractmethod
+    def create_optimizer(self, identifier: str, **kwargs) -> Optimizer:
+        """Создает оптимизатор гиперпараметров.
+        
+        Args:
+            identifier (str): Тип оптимизатора ('grid' или 'random')
+            **kwargs: Дополнительные параметры для инициализации
+            
+        Returns:
+            Optimizer: Объект стратегии оптимизации"""
+        pass
+    
+    @abstractmethod
+    def create_loader(self, data_src: Any, **kwargs) -> DataLoader:
+        """Создает загрузчик данных на основе типа источника.
+        Args:
+            data_src (Any): Источник данных (DataFrame, путь к файлу)
+            **kwargs: Дополнительные параметры загрузчика
+            
+        Returns:
+            DataLoader: Инициализированный загрузчик данных"""
         pass

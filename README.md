@@ -1,10 +1,10 @@
 # Pattern
 
-**Система для кластерного анализа больших и малых данных**
+**Library for unsupervised learning on big data and small data**
 
 ## Описание
 
-Проект представляет собой инструментарий для решения задач кластеризации с поддержкой:
+Проект представляет собой инструментарий для решения задач unsupervised learning с поддержкой:
 - Работы с данными через Pandas и Apache Spark
 - Модульной архитектуры для расширения функционала
 - Оптимизации гиперпараметров моделей
@@ -39,7 +39,7 @@ pip install -r requirements.txt
 ### Запуск пайплайна
 
 ```bash
-python main.py config.json
+python main.py -c config.json
 ```
 
 ### Получение справки
@@ -47,6 +47,7 @@ python main.py config.json
 ```bash
 # Общая справка
 python main.py -h
+python main.py -l
 
 # Справка по методу
 python main.py kmeans -h

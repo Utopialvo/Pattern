@@ -5,10 +5,8 @@ import pandas as pd
 from pyspark.sql import SparkSession
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from config.validator import load_config
-from data.loaders import PandasDataLoader, SparkDataLoader
-from optimization.strategies import GridSearch, RandomSearch
 from cli.parsers import create_root_parser, create_method_subparsers
-from core.api import create_loader, train_pipeline
+from core.factory import factory 
 
 
 def print_help():
@@ -66,30 +64,34 @@ def main():
     # Инициализация компонентов
     if config['data_source'] == 'pandas':
         data = pd.read_parquet(config['data_path'])
-        data_loader = PandasDataLoader(data)
+        data_loader = factory.create_loader(config['data_path'])
     elif config['data_source'] == 'spark':
         spark = SparkSession.builder.getOrCreate()
-        data_loader = SparkDataLoader(spark, config['data_path'])
+        data_loader = factory.create_loader(config['data_path'], spark = spark)
     else:
         raise ValueError(f"Неподдерживаемый источник данных: {config['data_source']}")
     
-    # Выбор модели и метрики
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
-    metric = METRIC_REGISTRY[config['metric']]()
+    optimizer = factory.create_optimizer(config.get('optimizer', 'grid'))
+    metric = factory.create_metric(config['metric'])
     
-    # Оптимизация параметров
-    optimizer = GridSearch() if config.get('optimizer', 'grid') == 'grid' else RandomSearch()
+    # Запуск оптимизации
     best_params = optimizer.find_best(
-        model_class,
-        data_loader,
-        config['params'],
-        metric
+        model_class=model_class,
+        data_loader=data_loader,
+        param_grid=config['params'],
+        metric=metric
     )
     
-    # Сохранение модели
+    # Создание финальной модели с лучшими параметрами
     if 'output_path' in config:
-        best_model = model_class(best_params)
-        best_model.fit(data_loader)
+        best_model = factory.create_model(config['algorithm'], best_params)
+        if config['data_source'] == 'pandas':
+            data = pd.read_parquet(config['data_path'])
+            data_loader = factory.create_loader(config['data_path'])
+        elif config['data_source'] == 'spark':
+            data_loader = factory.create_loader(config['data_path'], spark = spark)
+        best_model.fit(data_loader = data_loader)
         best_model.save(config['output_path'])
     
     print(f"Оптимальные параметры: {best_params}")

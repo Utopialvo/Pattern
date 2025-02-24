@@ -14,7 +14,7 @@ def create_root_parser() -> argparse.ArgumentParser:
     
     main_group = parser.add_argument_group('Основные параметры')
     main_group.add_argument(
-        'config_path',
+        '-c','--config_path',
         nargs='?',
         help='Путь к конфигурационному файлу'
     )

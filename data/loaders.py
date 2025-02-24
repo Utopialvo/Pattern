@@ -1,5 +1,5 @@
 # Файл: data/loaders.py
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union
 import pandas as pd
 from pyspark.sql import SparkSession
 from core.interfaces import DataLoader
@@ -7,13 +7,15 @@ from core.interfaces import DataLoader
 class PandasDataLoader(DataLoader):
     """Загрузчик данных из pandas DataFrame."""
     
-    def __init__(self, data: pd.DataFrame, batch_size: int = 1000):
+    def __init__(self, data: Union[pd.DataFrame, str], batch_size: int = 1000):
         """
         Args:
             data (pd.DataFrame): Исходные данные
             batch_size (int): Размер батча для итерации
         """
         self.data = data
+        if isinstance(self.data, str):
+            self.data = pd.read_parquet(self.data)
         self.batch_size = batch_size
 
     def iter_batches(self) -> Iterator[pd.DataFrame]:
