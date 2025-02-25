@@ -4,7 +4,10 @@ import pandas as pd
 from pyspark.sql import SparkSession
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from core.interfaces import ComponentFactory, ClusterModel
+from preprocessing.normalizers import Normalizer
 from core.factory import factory
+import datetime
+
 
 def train_pipeline(
     data_src: Any,
@@ -12,8 +15,10 @@ def train_pipeline(
     param_grid: Dict[str, list],
     metric: str = 'silhouette',
     optimizer: str = 'grid',
-    custom_factory: ComponentFactory = None
-) -> ClusterModel:
+    custom_factory: ComponentFactory = None,
+    normalizer: str = None,
+    spark: SparkSession = None,
+    **kwargs) -> ClusterModel:
     """Универсальный пайплайн обучения модели.
     
     Объединяет все этапы:
@@ -28,6 +33,8 @@ def train_pipeline(
         metric (str): Идентификатор метрики (default: 'silhouette')
         optimizer (str): Тип оптимизатора ('grid' или 'random') (default: 'grid')
         custom_factory (ComponentFactory): Кастомная фабрика (optional)
+        normalizer (str): Конфигурация нормализации json path (optional)
+        spark: SparkSession (optional)
         
     Returns:
         ClusterModel: Обученная модель с лучшими параметрами
@@ -47,9 +54,9 @@ def train_pipeline(
     
     # Получение класса модели
     model_class = MODEL_REGISTRY[algorithm]['class']
-    data_loader = used_factory.create_loader(data_src)
+    data_loader = used_factory.create_loader(data_src, spark = spark, normalizer = normalizer)
     optimizer = used_factory.create_optimizer(optimizer)
-    metric = factory.create_metric(metric)
+    metric = used_factory.create_metric(metric)
     
     # Запуск оптимизации
     best_params = optimizer.find_best(
@@ -60,7 +67,7 @@ def train_pipeline(
     )
     
     # Создание финальной модели с лучшими параметрами
-    best_model = factory.create_model(algorithm, best_params)
-    data_loader = used_factory.create_loader(data_src)
+    best_model = used_factory.create_model(algorithm, best_params)
+    data_loader = used_factory.create_loader(data_src, spark = spark, normalizer = normalizer)
     best_model.fit(data_loader = data_loader)
     return best_model

@@ -41,6 +41,7 @@ def main():
     parser = create_root_parser()
     create_method_subparsers(parser)
     args = parser.parse_args()
+    #args = {k: v for k, v in args.items() if v is not None}
     
     if args.help:
         print_help()
@@ -63,15 +64,14 @@ def main():
     
     # Инициализация компонентов
     if config['data_source'] == 'pandas':
-        data = pd.read_parquet(config['data_path'])
-        data_loader = factory.create_loader(config['data_path'])
+        pass
     elif config['data_source'] == 'spark':
         spark = SparkSession.builder.getOrCreate()
-        data_loader = factory.create_loader(config['data_path'], spark = spark)
     else:
         raise ValueError(f"Неподдерживаемый источник данных: {config['data_source']}")
-    
+        
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
+    data_loader = factory.create_loader(config['data_path'], spark = spark, normalizer = config['normalizer'])
     optimizer = factory.create_optimizer(config.get('optimizer', 'grid'))
     metric = factory.create_metric(config['metric'])
     
@@ -86,11 +86,7 @@ def main():
     # Создание финальной модели с лучшими параметрами
     if 'output_path' in config:
         best_model = factory.create_model(config['algorithm'], best_params)
-        if config['data_source'] == 'pandas':
-            data = pd.read_parquet(config['data_path'])
-            data_loader = factory.create_loader(config['data_path'])
-        elif config['data_source'] == 'spark':
-            data_loader = factory.create_loader(config['data_path'], spark = spark)
+        data_loader = used_factory.create_loader(data_src, spark = spark, normalizer = normalizer)
         best_model.fit(data_loader = data_loader)
         best_model.save(config['output_path'])
     

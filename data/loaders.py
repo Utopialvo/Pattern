@@ -3,6 +3,22 @@ from typing import Iterator, Optional, Union
 import pandas as pd
 from pyspark.sql import SparkSession
 from core.interfaces import DataLoader
+from preprocessing.normalizers import Normalizer
+
+class NormalizingDataLoader(DataLoader):
+    """Декоратор для DataLoader с добавлением нормализации."""
+    
+    def __init__(self, base_loader: DataLoader, normalizer: Normalizer):
+        self.base_loader = base_loader
+        self.normalizer = normalizer
+
+    def iter_batches(self) -> Iterator[pd.DataFrame]:
+        for batch in self.base_loader.iter_batches():
+            yield self.normalizer.transform(batch)
+
+    def full_data(self) -> pd.DataFrame:
+        return self.normalizer.transform(self.base_loader.full_data())
+    
 
 class PandasDataLoader(DataLoader):
     """Загрузчик данных из pandas DataFrame."""
@@ -42,6 +58,7 @@ class SparkDataLoader(DataLoader):
             path (str): Путь к данным
             format (str): Формат данных (parquet, csv и т.д.)
         """
+        """Заглушка"""
         self.spark = spark
         self.path = path
         self.format = format
@@ -49,25 +66,17 @@ class SparkDataLoader(DataLoader):
 
     def _load(self):
         """Ленивая загрузка данных при первом обращении."""
+        """Заглушка"""
         if self._data is None:
             self._data = self.spark.read.format(self.format).load(self.path)
 
     def iter_batches(self) -> Iterator[pd.DataFrame]:
-        """Итерация по батчам данных через toLocalIterator.
-        
-        Warning:
-            Может быть медленным для больших датасетов из-за 
-            последовательной обработки партиций
-        """
+        """Итерация по батчам данных через toLocalIterator."""
+        """Заглушка"""
         self._load()
         return (batch.toPandas() for batch in self._data.rdd.toLocalIterator())
 
     def full_data(self) -> Optional[pd.DataFrame]:
-        """Загружает все данные в память драйвера как pandas DataFrame.
-        
-        Warning:
-            Не используйте для больших датасетов - может вызвать 
-            OutOfMemory ошибку
-        """
+        """Заглушка"""
         self._load()
         return self._data.toPandas()
