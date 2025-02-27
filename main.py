@@ -64,11 +64,14 @@ def main():
     
     # Инициализация компонентов
     if config['data_source'] == 'pandas':
-        pass
+        spark = None
     elif config['data_source'] == 'spark':
         spark = SparkSession.builder.getOrCreate()
     else:
         raise ValueError(f"Неподдерживаемый источник данных: {config['data_source']}")
+
+    if 'normalizer' not in config:
+        config['normalizer'] = None
         
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
     data_loader = factory.create_loader(config['data_path'], spark = spark, normalizer = config['normalizer'])
@@ -86,7 +89,7 @@ def main():
     # Создание финальной модели с лучшими параметрами
     if 'output_path' in config:
         best_model = factory.create_model(config['algorithm'], best_params)
-        data_loader = used_factory.create_loader(data_src, spark = spark, normalizer = normalizer)
+        data_loader = factory.create_loader(config['data_path'], spark = spark, normalizer = config['normalizer'])
         best_model.fit(data_loader = data_loader)
         best_model.save(config['output_path'])
     
