@@ -1,12 +1,39 @@
 # Файл: models/sklearn_cluster.py
-import pandas as pd
-import pickle
 from pathlib import Path
+import pickle
+import pandas as pd
 from sklearn.cluster import KMeans, DBSCAN
 from numbers import Number
 from core.interfaces import ClusterModel, DataLoader
 from config.registries import register_model
 
+class SklearnClusterModel(ClusterModel):
+    """Base class for scikit-learn clustering implementations."""
+    
+    def fit(self, data_loader: DataLoader) -> None:
+        """Fit model to data from loader."""
+        features, _ = data_loader.full_data()
+        self.model.fit(features)
+
+    def predict(self, data_loader: DataLoader) -> pd.Series:
+        """Predict cluster labels for new data."""
+        features, _ = data_loader.full_data()
+        return pd.Series(self.model.predict(features))
+
+    def save(self, path: str) -> None:
+        """Persist model to disk."""
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: str) -> 'SklearnClusterModel':
+        """Load model from disk."""
+        with open(path, 'rb') as f:
+            model = pickle.load(f)
+        if not isinstance(model, cls):
+            raise ValueError(f"Invalid model type. Expected {cls.__name__}")
+        return model
 
 @register_model(
     name='kmeans',
@@ -16,57 +43,26 @@ from config.registries import register_model
         'max_iter': 'Maximum iterations (positive integer)'
     }
 )
-class SklearnKMeans(ClusterModel):
-    """Реализация K-Means алгоритма с использованием scikit-learn.
-    
-    Attributes:
-        model (KMeans): Объект обученной модели
-        _centroids (np.ndarray): Центроиды кластеров
-    """
+class SklearnKMeans(SklearnClusterModel):
+    """K-Means implementation using scikit-learn."""
     
     def __init__(self, params: dict):
-        """Инициализация модели с валидацией параметров.
-        
-        Args:
-            params (dict): Параметры для инициализации модели
-        """
         self._validate_params(params)
         self.model = KMeans(**params)
         self._centroids = None
 
-    def _validate_params(self, params):
-        required = {'n_clusters'}
-        if not required.issubset(params.keys()):
-            raise ValueError(f"Missing parameters: {required}")
-        
-        if not isinstance(params['n_clusters'], int) or params['n_clusters'] < 1:
+    def _validate_params(self, params: dict) -> None:
+        """Validate KMeans-specific parameters."""
+        if not isinstance(params.get('n_clusters'), int) or params['n_clusters'] < 1:
             raise ValueError("n_clusters must be positive integer")
 
-    def fit(self, data_loader: DataLoader):
-        full_data = pd.concat(data_loader.iter_batches(), ignore_index=True)
-        self.model.fit(full_data)
+    def fit(self, data_loader: DataLoader) -> None:
+        super().fit(data_loader)
         self._centroids = self.model.cluster_centers_
-
-    def predict(self, data: pd.DataFrame) -> pd.Series:
-        return pd.Series(self.model.predict(data))
 
     @property
     def model_data(self) -> dict:
         return {'centroids': self._centroids}
-
-    @classmethod
-    def load(cls, path: str) -> 'SklearnKMeans':
-        with open(path, 'rb') as f:
-            model = pickle.load(f)
-        if not isinstance(model, cls):
-            raise ValueError("Loaded object is not a SklearnKMeans instance")
-        return model
-
-    def save(self, path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'wb') as f:
-            pickle.dump(self, f)
-
 
 @register_model(
     name='dbscan',
@@ -75,53 +71,20 @@ class SklearnKMeans(ClusterModel):
         'min_samples': 'Minimum samples in neighborhood (positive integer)'
     }
 )
-class SklearnDBSCAN(ClusterModel):
-    """Реализация DBSCAN алгоритма с использованием scikit-learn.
-    
-    Attributes:
-        model (DBSCAN): Объект обученной модели
-    """
+class SklearnDBSCAN(SklearnClusterModel):
+    """DBSCAN implementation using scikit-learn."""
     
     def __init__(self, params: dict):
-        """Инициализация модели с валидацией параметров.
-        
-        Args:
-            params (dict): Параметры для инициализации модели
-        """
         self._validate_params(params)
         self.model = DBSCAN(**params)
 
-    def _validate_params(self, params):
-        required = {'eps', 'min_samples'}
-        if not required.issubset(params.keys()):
-            raise ValueError(f"Missing parameters: {required}")
-        
-        if not isinstance(params['eps'], Number) or params['eps'] <= 0:
+    def _validate_params(self, params: dict) -> None:
+        """Validate DBSCAN-specific parameters."""
+        if not isinstance(params.get('eps'), Number) or params['eps'] <= 0:
             raise ValueError("eps must be positive number")
-        
-        if not isinstance(params['min_samples'], int) or params['min_samples'] < 1:
+        if not isinstance(params.get('min_samples'), int) or params['min_samples'] < 1:
             raise ValueError("min_samples must be positive integer")
-
-    def fit(self, data_loader: DataLoader):
-        full_data = pd.concat(data_loader.iter_batches(), ignore_index=True)
-        self.model.fit(full_data)
-
-    def predict(self, data: pd.DataFrame) -> pd.Series:
-        return pd.Series(self.model.fit_predict(data))
 
     @property
     def model_data(self) -> dict:
         return {}
-
-    @classmethod
-    def load(cls, path: str) -> 'SklearnDBSCAN':
-        with open(path, 'rb') as f:
-            model = pickle.load(f)
-        if not isinstance(model, cls):
-            raise ValueError("Loaded object is not a SklearnDBSCAN instance")
-        return model
-
-    def save(self, path: str):
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'wb') as f:
-            pickle.dump(self, f)

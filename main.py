@@ -1,48 +1,45 @@
 # Файл: main.py
 import sys
-import json
-import pandas as pd
 from pyspark.sql import SparkSession
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from config.validator import load_config
 from cli.parsers import create_root_parser, create_method_subparsers
-from core.factory import factory 
-
+from core.factory import factory
 
 def print_help():
-    """Выводит расширенную справку."""
+    """Display extended help information."""
     help_text = f"""
-Доступные алгоритмы ({len(MODEL_REGISTRY)}):
+Available algorithms ({len(MODEL_REGISTRY)}):
 {', '.join(MODEL_REGISTRY.keys())}
 
-Доступные метрики ({len(METRIC_REGISTRY)}):
+Available metrics ({len(METRIC_REGISTRY)}):
 {', '.join(METRIC_REGISTRY.keys())}
 
-Примеры использования:
-1. Запуск с конфигурационным файлом:
+Usage examples:
+1. Run with config file:
    main.py config.json
 
-2. Справка по алгоритму:
+2. Algorithm help:
    main.py kmeans -h
 """
     print(help_text)
 
 def handle_list_command():
-    """Обрабатывает запрос списка алгоритмов."""
-    print("Реализованные алгоритмы:")
+    """Display list of available algorithms and metrics."""
+    print("Implemented algorithms:")
     for algo, info in MODEL_REGISTRY.items():
-        print(f"\n{algo}:")
-        print(f"  Параметры: {', '.join(info['params_help'].keys())}")
+        params = ', '.join(info['params_help'].keys())
+        print(f"\n{algo}:\n  Parameters: {params}")
     
-    print("\nДоступные метрики:")
+    print("\nAvailable metrics:")
     print('\n'.join(METRIC_REGISTRY.keys()))
 
 def main():
+    # Initialize command line interface
     parser = create_root_parser()
     create_method_subparsers(parser)
     args = parser.parse_args()
-    #args = {k: v for k, v in args.items() if v is not None}
-    
+
     if args.help:
         print_help()
         return
@@ -50,50 +47,48 @@ def main():
     if args.list:
         handle_list_command()
         return
-    
-    if args.algorithm:
-        # Обработка вызова для конкретного алгоритма
-        return
-    
+
     if not args.config_path:
-        print("Ошибка: Не указан конфигурационный файл")
-        sys.exit(1)
-    
-    # Загрузка и выполнение конфигурации
+        sys.exit("Error: Configuration file not specified")
+
+    # Load and validate configuration
     config = load_config(args.config_path)
     
-    # Инициализация компонентов
-    if config['data_source'] == 'pandas':
-        spark = None
-    elif config['data_source'] == 'spark':
-        spark = SparkSession.builder.getOrCreate()
-    else:
-        raise ValueError(f"Неподдерживаемый источник данных: {config['data_source']}")
+    # Initialize execution environment
+    spark = SparkSession.builder.getOrCreate() if config['data_source'] == 'spark' else None
+    
+    # Configure data processing components
+    components = {
+        'normalizer': config.get('normalizer'),
+        'sampler': config.get('sampler')
+    }
 
-    if 'normalizer' not in config:
-        config['normalizer'] = None
-        
+    # Initialize core components
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
-    data_loader = factory.create_loader(config['data_path'], spark = spark, normalizer = config['normalizer'])
+    data_loader = factory.create_loader(
+        config['data_path'],
+        spark=spark,
+        **components
+    )
+    
+    # Execute optimization pipeline
     optimizer = factory.create_optimizer(config.get('optimizer', 'grid'))
     metric = factory.create_metric(config['metric'])
     
-    # Запуск оптимизации
     best_params = optimizer.find_best(
         model_class=model_class,
         data_loader=data_loader,
         param_grid=config['params'],
         metric=metric
     )
-    
-    # Создание финальной модели с лучшими параметрами
-    if 'output_path' in config:
+
+    # Save final model if requested
+    if output_path := config.get('output_path'):
         best_model = factory.create_model(config['algorithm'], best_params)
-        data_loader = factory.create_loader(config['data_path'], spark = spark, normalizer = config['normalizer'])
-        best_model.fit(data_loader = data_loader)
-        best_model.save(config['output_path'])
-    
-    print(f"Оптимальные параметры: {best_params}")
+        best_model.fit(data_loader)
+        best_model.save(output_path)
+
+    print(f"Optimal parameters: {best_params}")
 
 if __name__ == "__main__":
     main()

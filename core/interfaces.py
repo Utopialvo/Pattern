@@ -1,180 +1,150 @@
 # Файл: core/interfaces.py
 from abc import ABC, abstractmethod
-from typing import Iterator, Optional, Dict, Any
+from typing import Iterator, Optional, Dict, Any, Tuple, Union
 import pandas as pd
+from pyspark.sql import DataFrame as SparkDataFrame
 
 
 class DataLoader(ABC):
-    """Абстрактный класс для загрузки данных батчами."""
+    """Abstract base class for data loading components."""
     
     @abstractmethod
-    def iter_batches(self) -> Iterator[pd.DataFrame]:
-        """Генератор батчей данных.
-        
-        Yields:
-            pd.DataFrame: Очередной батч данных
+    def __init__(self, 
+                 data_src: Union[str, list, Tuple],
+                 normalizer: Optional['Normalizer'] = None,
+                 sampler: Optional['Sampler'] = None):
         """
-        pass
-    
+        Initialize data loader with source and processing components
+        
+        Args:
+            data_src: Data source(s) - path(s) or DataFrame(s)
+            normalizer: Optional data normalization component
+            sampler: Optional data sampling component
+        """
+
     @abstractmethod
-    def full_data(self) -> Optional[pd.DataFrame]:
-        """Полная загрузка данных в память.
-        
-        Returns:
-            pd.DataFrame | None: Полный датасет или None если не поддерживается
-        """
-        pass
+    def _load(self, *data_src: Union[str, pd.DataFrame, SparkDataFrame]):
+        """Загружает данные из одного или двух источников"""
+
+    @abstractmethod
+    def iter_batches(self, batch_size: int) -> Iterator[Tuple]:
+        """Generate data batches with optional shuffling"""
+
+    @abstractmethod
+    def full_data(self) -> Tuple:
+        """Retrieve complete dataset as a tuple of features and labels"""
 
 
 class ClusterModel(ABC):
-    """Абстрактный класс модели кластеризации."""
+    """Abstract base class for clustering model implementations."""
     
     @abstractmethod
     def __init__(self, params: Dict[str, Any]):
-        """Инициализация модели с параметрами.
+        """
+        Initialize model with configuration parameters
         
         Args:
-            params (dict): Словарь гиперпараметров модели
+            params: Model hyperparameters dictionary
         """
-        pass
     
     @abstractmethod
     def fit(self, data_loader: DataLoader) -> None:
-        """Обучение модели на данных из DataLoader.
-        
-        Args:
-            data_loader (DataLoader): Источник данных для обучения
-        """
-        pass
+        """Train model using data from provided loader"""
     
     @abstractmethod
-    def predict(self, data: pd.DataFrame) -> pd.Series:
-        """Предсказание кластеров для новых данных.
-        
-        Args:
-            data (pd.DataFrame): Данные для предсказания
-            
-        Returns:
-            pd.Series: Метки кластеров
-        """
-        pass
+    def predict(self, data_loader: DataLoader) -> Union[pd.Series, pd.DataFrame, SparkDataFrame]:
+        """Generate cluster predictions for input data"""
     
     @property
     @abstractmethod
     def model_data(self) -> dict:
-        """Дополнительные данные модели (центроиды и т.д.).
-        
-        Returns:
-            dict: Словарь с внутренними данными модели
-        """
-        pass
+        """Access internal model state data (centroids, etc.)"""
     
     @classmethod
     @abstractmethod
     def load(cls, path: str) -> 'ClusterModel':
-        """Загрузка модели из файла.
-        
-        Args:
-            path (str): Путь к файлу модели
-            
-        Returns:
-            ClusterModel: Загруженная модель
-        """
-        pass
+        """Reconstruct model from storage"""
     
     @abstractmethod
-    def save(self, path: str):
-        """Сохранение модели в файл.
-        
-        Args:
-            path (str): Путь для сохранения файла
-        """
-        pass
+    def save(self, path: str) -> None:
+        """Persist model to storage"""
 
 class Metric(ABC):
-    """Абстрактный класс для метрик оценки качества."""
+    """Abstract base class for clustering evaluation metrics."""
     
     @abstractmethod
-    def calculate(self, data: pd.DataFrame, labels: pd.Series, model_data: dict) -> float:
-        """Вычисление значения метрики.
+    def calculate(self,
+                  data_loader: DataLoader,
+                  labels: Union[pd.Series, pd.DataFrame, SparkDataFrame], 
+                  model_data: dict) -> float:
+        """
+        Compute metric value for clustering results
         
         Args:
-            data (pd.DataFrame): Исходные данные
-            labels (pd.Series): Предсказанные метки кластеров
-            model_data (dict): Дополнительные данные модели
+            data_loader: Source of input data
+            labels: Predicted cluster assignments
+            model_data: Internal model state data
             
         Returns:
-            float: Значение метрики
+            Computed metric score
         """
-        pass
 
 class Optimizer(ABC):
-    """Абстрактный класс для оптимизации гиперпараметров."""
+    """Abstract base class for hyperparameter optimization strategies."""
     
     @abstractmethod
-    def find_best(self, model_class: type, data_loader: DataLoader, 
-                 param_grid: Dict[str, list], metric: Metric) -> Dict[str, Any]:
-        """Поиск наилучших гиперпараметров.
+    def find_best(self, 
+                  model_class: type[ClusterModel], 
+                  data_loader: DataLoader, 
+                  param_grid: Dict[str, list], 
+                  metric: Metric) -> Dict[str, Any]:
+        """
+        Discover optimal hyperparameters through search
         
         Args:
-            model_class (type): Класс модели для оптимизации
-            data_loader (DataLoader): Источник данных
-            param_grid (dict): Сетка параметров для поиска
-            metric (Metric): Метрика для оценки
+            model_class: Model type to optimize
+            data_loader: Training data source
+            param_grid: Parameter search space
+            metric: Optimization target metric
             
         Returns:
-            dict: Наилучшие найденные параметры
+            Best performing parameter configuration
         """
-        
-        pass
 
 
 class ComponentFactory(ABC):
-    """Абстрактная фабрика для создания компонентов системы.
-    Определяет интерфейс для создания основных компонентов системы:
-    - Модели кластеризации
-    - Метрики качества
-    - Оптимизаторы гиперпараметров
-    - Загрузчики данных"""
+    """Abstract factory interface for system component creation."""
     
     @abstractmethod
     def create_model(self, identifier: str, config: Dict[str, Any]) -> ClusterModel:
-        """Создает экземпляр модели кластеризации.
-            Args: 
-                identifier (str): Идентификатор модели из регистра 
-                config (dict): Словарь параметров для инициализации 
-            Returns: ClusterModel: Готовый к использованию экземпляр модели"""
-        pass
+        """
+        Instantiate clustering model
+        
+        Args:
+            identifier: Registered model type identifier
+            config: Model initialization parameters
+        """
     
     @abstractmethod
     def create_metric(self, identifier: str) -> Metric:
-        """Создает объект метрики качества.
-        Args:
-            identifier (str): Идентификатор метрики из регистра
-        Returns:
-            Metric: Реализация интерфейса метрики"""
-        
-        pass
+        """Construct evaluation metric instance"""
     
     @abstractmethod
     def create_optimizer(self, identifier: str, **kwargs) -> Optimizer:
-        """Создает оптимизатор гиперпараметров.
+        """
+        Initialize optimization strategy
         
         Args:
-            identifier (str): Тип оптимизатора ('grid' или 'random')
-            **kwargs: Дополнительные параметры для инициализации
-            
-        Returns:
-            Optimizer: Объект стратегии оптимизации"""
-        pass
+            identifier: Optimizer type identifier
+            kwargs: Strategy-specific configuration
+        """
     
     @abstractmethod
     def create_loader(self, data_src: Any, **kwargs) -> DataLoader:
-        """Создает загрузчик данных на основе типа источника.
+        """
+        Configure data loading pipeline
+        
         Args:
-            data_src (Any): Источник данных (DataFrame, путь к файлу)
-            **kwargs: Дополнительные параметры загрузчика
-            
-        Returns:
-            DataLoader: Инициализированный загрузчик данных"""
-        pass
+            data_src: Input data source(s)
+            kwargs: Loader-specific configuration
+        """

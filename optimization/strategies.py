@@ -1,27 +1,30 @@
 # Файл: optimization/strategies.py
 import itertools
 import random
-from typing import Dict, Any
+from typing import Dict, Any, Type
 from core.interfaces import Optimizer, DataLoader, Metric
 
 class GridSearch(Optimizer):
-    """Полный перебор всех комбинаций параметров."""
+    """Exhaustive search over hyperparameter combinations."""
     
-    def find_best(self, model_class: type, data_loader: DataLoader, 
-                 param_grid: Dict[str, list], metric: Metric) -> Dict[str, Any]:
-        """Поиск по сетке параметров.
+    def find_best(self, 
+                 model_class: Type, 
+                 data_loader: DataLoader, 
+                 param_grid: Dict[str, list],
+                 metric: Metric) -> Dict[str, Any]:
+        """Perform grid search optimization.
         
         Args:
-            model_class (type): Класс модели для оптимизации
-            data_loader (DataLoader): Источник данных
-            param_grid (dict): Сетка параметров вида {параметр: [значения]}
-            metric (Metric): Метрика для оценки
+            model_class: Model class to optimize
+            data_loader: Data source for training/validation
+            param_grid: Parameter search space {parameter: [values]}
+            metric: Evaluation metric to maximize
             
         Returns:
-            dict: Наилучшие параметры
+            Best performing parameter configuration
             
         Note:
-            Печатает информацию о неудачных комбинациях параметров
+            Prints information about failed parameter combinations
         """
         best_score = -float('inf')
         best_params = {}
@@ -30,34 +33,38 @@ class GridSearch(Optimizer):
             try:
                 model = model_class(params)
                 model.fit(data_loader)
-                labels = model.predict(data_loader.full_data())
-                score = metric.calculate(data_loader.full_data(), labels, model.model_data)
+                labels = model.predict(data_loader)
+                
+                score = metric.calculate(
+                    data_loader=data_loader,
+                    labels=labels,
+                    model_data=model.model_data
+                )
                 
                 if score > best_score:
-                    best_score = score
-                    best_params = params
+                    best_score, best_params = score, params.copy()
+                    
             except Exception as e:
-                print(f"Skip {params}: {e}")
-        
+                print(f"Skipped {params}: {str(e)}")
+                
         return best_params
 
-    def _generate_params(self, param_grid):
-        """Генератор всех комбинаций параметров."""
-        keys, values = zip(*param_grid.items())
-        for combination in itertools.product(*values):
-            yield dict(zip(keys, combination))
+    def _generate_params(self, param_grid: Dict[str, list]) -> Dict[str, Any]:
+        """Generate all parameter combinations from grid."""
+        for values in itertools.product(*param_grid.values()):
+            yield dict(zip(param_grid.keys(), values))
 
 class RandomSearch(GridSearch):
-    """Случайный поиск с ограниченным числом итераций."""
+    """Random parameter search with limited iterations."""
     
     def __init__(self, n_iter: int = 10):
         """
         Args:
-            n_iter (int): Количество случайных комбинаций для проверки
+            n_iter: Number of random parameter combinations to test
         """
         self.n_iter = n_iter
 
-    def _generate_params(self, param_grid):
-        """Генератор случайных комбинаций параметров."""
+    def _generate_params(self, param_grid: Dict[str, list]) -> Dict[str, Any]:
+        """Generate random parameter combinations."""
         for _ in range(self.n_iter):
             yield {k: random.choice(v) for k, v in param_grid.items()}

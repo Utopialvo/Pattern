@@ -8,41 +8,43 @@ from config.registries import register_metric
 
 @register_metric('silhouette')
 class SilhouetteScore(Metric):
-    """Вычисляет силуэтный коэффициент для оценки качества кластеризации."""
+    """Calculates silhouette coefficient for clustering quality assessment."""
     
-    def calculate(self, data: pd.DataFrame, labels: pd.Series, model_data: dict) -> float:
-        """Вычисляет метрику на основе данных и предсказанных кластеров.
+    def calculate(self, data_loader, labels: pd.Series, model_data: dict) -> float:
+        """Compute metric using features and cluster assignments.
         
         Args:
-            data (pd.DataFrame): Исходные данные
-            labels (pd.Series): Метки кластеров
-            model_data (dict): Дополнительные данные модели
+            data_loader: Source containing features DataFrame
+            labels: Cluster assignments for each sample
+            model_data: Additional model information (unused)
             
         Returns:
-            float: Значение метрики
+            Silhouette score between -1 and 1
         """
-        return silhouette_score(data, labels)
-
+        return silhouette_score(data_loader.features, labels)
 
 @register_metric('inertia')
 class InertiaScore(Metric):
-    """Вычисляет инерцию (сумму квадратов расстояний) для K-Means."""
+    """Calculates sum of squared distances to nearest cluster center."""
     
-    def calculate(self, data: pd.DataFrame, labels: pd.Series, model_data: dict) -> float:
-        """Вычисляет метрику на основе данных и центроидов кластеров.
+    def calculate(self, data_loader, labels: pd.Series, model_data: dict) -> float:
+        """Compute total intra-cluster variance.
         
         Args:
-            data (pd.DataFrame): Исходные данные
-            labels (pd.Series): Метки кластеров
-            model_data (dict): Должен содержать ключ 'centroids'
+            data_loader: Source containing features DataFrame
+            labels: Cluster assignments for each sample
+            model_data: Must contain 'centroids' key with cluster centers
             
         Returns:
-            float: Значение метрики
+            Total within-cluster sum of squares
             
         Raises:
-            ValueError: Если центроиды не найдены в model_data
+            KeyError: If centroids missing from model_data
         """
+        features = data_loader.features.values
         centroids = model_data.get('centroids')
         if centroids is None:
             raise ValueError("Centroids required for inertia calculation")
-        return sum(np.linalg.norm(data.values - centroids[label])**2 for label in labels)
+        # Vectorized distance calculation
+        distances = np.linalg.norm(features - centroids[labels], axis=1)
+        return np.sum(distances ** 2)

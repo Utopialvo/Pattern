@@ -1,17 +1,24 @@
 {
   "data_source": "pandas",
-  "data_path": "sample.parquet",
+  "data_path": [
+    "sample.parquet",
+    null
+  ],
   "algorithm": "kmeans",
   "params": {
     "n_clusters": [
       3,
-      5
+      5,
+      7,
+      10
     ],
     "init": [
-      "k-means++"
+      "k-means++",
+      "random"
     ],
     "max_iter": [
-      100
+      100,
+      200
     ]
   },
   "metric": "silhouette",

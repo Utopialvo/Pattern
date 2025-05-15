@@ -1,87 +1,85 @@
 # Файл: core/abstractions.py
-import pandas as pd
-from typing import Any, Dict, Union
+from typing import Any, Union, Optional
+from pyspark.sql import SparkSession
 from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
 from optimization.strategies import GridSearch, RandomSearch
-from preprocessing.normalizers import Normalizer
+from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 
 from models import *
 from metrics import *
-from pyspark.sql import SparkSession
 
 
 class DefaultFactory(ComponentFactory):
-    """Фабрика по умолчанию, использующая зарегистрированные компоненты."""
+    """Default component factory using registered implementations."""
     
-    def create_model(self, 
-                     identifier: str, 
-                     config: Dict[str, Any]) -> ClusterModel:
-        """Создает экземпляр модели с валидацией параметров.
+    def create_model(self, identifier: str, config: dict[str, Any]) -> ClusterModel:
+        """Instantiate a model with parameter validation.
         
         Args:
-            identifier (str): Имя алгоритма из MODEL_REGISTRY
-            config (dict): Конкретные параметры для инициализации модели (не сетка!)
-        
+            identifier: Algorithm name from MODEL_REGISTRY
+            config: Concrete initialization parameters (not a grid)
+            
         Returns:
-            ClusterModel: Готовый к использованию экземпляр модели
+            Configured model instance
+            
+        Raises:
+            ValueError: For unknown algorithms or missing parameters
         """
-        if identifier not in MODEL_REGISTRY:
-            available = list(MODEL_REGISTRY.keys())
-            raise ValueError(f"Unknown algorithm: {identifier}. Available: {available}")
-        # Валидация обязательных параметров
-        required_params = set(MODEL_REGISTRY[identifier]['params_help'].keys())
-        missing = required_params - config.keys()
-        if missing:
+        if (meta := MODEL_REGISTRY.get(identifier)) is None:
+            raise ValueError(f"Unknown algorithm '{identifier}'. Available: {list(MODEL_REGISTRY)}")
+            
+        if missing := set(meta['params_help']) - config.keys():
             raise ValueError(f"Missing required parameters for {identifier}: {missing}")
-        # Создание экземпляра модели
-        return MODEL_REGISTRY[identifier]['class'](config)
+            
+        return meta['class'](config)
     
     def create_metric(self, identifier: str) -> Metric:
-        """Фабрика метрик через регистр."""
-        if identifier not in METRIC_REGISTRY:
-            raise ValueError(f"Unknown metric: {identifier}. Available: {list(METRIC_REGISTRY.keys())}")
-        return METRIC_REGISTRY[identifier]()
+        """Create metric instance from registry."""
+        if (metric_cls := METRIC_REGISTRY.get(identifier)) is None:
+            raise ValueError(f"Unknown metric '{identifier}'. Available: {list(METRIC_REGISTRY)}")
+        return metric_cls()
     
     def create_optimizer(self, identifier: str, **kwargs) -> Optimizer:
-        """Автоматическое создание Optimizer."""
-        optimizers = {
-            'grid': GridSearch,
-            'random': RandomSearch
-        }
-        return optimizers[identifier](**kwargs)
+        """Create hyperparameter optimization strategy."""
+        strategies = {'grid': GridSearch, 'random': RandomSearch}
+        return strategies[identifier](**kwargs)
     
-    def create_loader(self, 
-                      data_src: Union[pd.DataFrame, str], 
-                      normalizer: Union[Normalizer, str] = None,
-                      spark: SparkSession = None, 
-                      **kwargs) -> DataLoader:
-        """Автоматическое создание DataLoader по типу данных.
-            Args:
-            data_src: Источник данных
-            normalizer: Путь к файлу нормализатора или объект Normalizer
-            spark: SparkSession
-            **kwargs: Доп. параметры загрузчика
-        Returns:
-            DataLoader с интегрированной нормализацией
-        """
-        base_loader = super().create_loader(data_src, **kwargs)
+    def create_loader(self,
+                     data_src: Union[str, list, tuple],
+                     normalizer: Optional[Union[SparkNormalizer, PandasNormalizer, str]] = None,
+                     sampler: Optional['Sampler'] = None,
+                     spark: Optional[SparkSession] = None,
+                     **kwargs) -> DataLoader:
+        """Create appropriate data loader with normalization.
         
-        if normalizer:
-            if isinstance(normalizer, str):
-                normalizer = Normalizer
-                normalizer.load(normalizer)
-            if spark:
-                return NormalizingDataLoader(base_loader = base_loader, normalizer = normalizer, spark=spark, **kwargs)
+        Args:
+            data_src: Data source(s) - path(s) or DataFrame(s)
+            normalizer: Normalizer instance/config path (optional)
+            sampler: Data sampling component (optional)
+            spark: Spark session for distributed processing (optional)
+            
+        Returns:
+            Configured data loader with optional normalization
+        """
+        # Normalizer initialization
+        if isinstance(normalizer, str):
+            if spark is not None:
+                normalizer = SparkNormalizer.load(normalizer)
             else:
-                return NormalizingDataLoader(base_loader = base_loader, normalizer = normalizer, **kwargs)
-        else:
-            if spark:
-                return SparkDataLoader(data_src, spark, **kwargs)
-            elif isinstance(data_src, pd.DataFrame) or isinstance(data_src, str):
-                return PandasDataLoader(data_src, **kwargs)
-            raise ValueError("Unsupported data source type")
+                normalizer = PandasNormalizer.load(normalizer)
+            
+        loader_cls = SparkDataLoader if spark else PandasDataLoader
+        data_src = [data_src] if isinstance(data_src, str) else data_src
+            
+        return loader_cls(
+            data_src=data_src,
+            normalizer=normalizer,
+            sampler=sampler,
+            spark=spark,
+            **kwargs
+        )
 
 factory = DefaultFactory()
 

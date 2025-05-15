@@ -1,33 +1,33 @@
 # Pattern
 
-**Library for unsupervised learning on big data and small data**
+**Library for scalable unsupervised learning**
 
-## Описание
+## Description
 
-Проект представляет собой инструментарий для решения задач unsupervised learning с поддержкой:
-- Работы с данными через Pandas и Apache Spark
-- Модульной архитектуры для расширения функционала
-- Оптимизации гиперпараметров моделей
+A modular toolkit for unsupervised learning tasks with:
+- Pandas & Apache Spark integration
+- Extensible architecture for algorithms/metrics
+- Hyperparameter optimization framework
 
-## Особенности
+## Features
 
-- **Поддерживаемые алгоритмы**: 
-- **Метрики качества**: 
-- **Подбор гиперпараметров**: 
-- **Форматы данных**: 
-- **Сериализация моделей**:
+- **Algorithms**:
+- **Metrics**: 
+- **Optimization**: Grid Search, Random Search
+- **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
+- **Serialization**: Joblib/Pickle model persistence
 
-## Требования
+## Requirements
 
 - Python 3.8+
-- Pyspark 3.2.1+
-- Библиотеки:
-  - 
-  - 
-  - 
-  - 
+- PySpark 3.2.1+ (optional for Spark mode)
+- Core Dependencies:
+  - scikit-learn
+  - pandas
+  - numpy
+  - joblib
 
-## Установка
+## Installation
 
 ```bash
 git clone https://github.com/Utopialvo/Pattern.git
@@ -35,50 +35,52 @@ cd Pattern
 pip install -r requirements.txt
 ```
 
-## Использование
+## Usage
 
-### Запуск пайплайна
+### Run Pipeline
 
 ```bash
 python main.py -c config.json
 ```
 
-### Получение справки
+### Get Help
 
 ```bash
-# Общая справка
+# Main help
 python main.py -h
+
+# List components
 python main.py -l
 
-# Справка по методу
+# Algorithm-specific help
 python main.py kmeans -h
 ```
 
-## Структура проекта
+## Project Structure
 
 ```
 Pattern/
-├── core/             - Базовые интерфейсы
-├── data/             - Загрузчики данных
-├── models/           - Реализации моделей
-├── metrics/          - Метрики качества
-├── optimization/     - Стратегии оптимизации
-├── preprocessing/    - Препроцессинг данных
-├── config/           - Валидация конфигураций
-├── cli/              - Обработка командной строки
-├── main.py           - Точка входа в Pattern
-├── README.md         - Описание проекта
-├── config.json       - Пример настроек для запуска оптимизации
-└── Test.ipynb        - Ноутбук с примером
+├── core/              # Base interfaces
+├── data/              # Data loaders (Pandas/Spark)
+├── models/            # Clustering implementations
+├── metrics/           # Quality metrics
+├── optimization/      # Hyperparameter strategies
+├── preprocessing/     # Normalizers/Samplers
+├── config/            # Configuration validation
+├── cli/               # Command line interface
+├── main.py            # Entry point
+├── README.md          # Project documentation
+├── config.json        # Example configuration
+└── Test.ipynb         # Example notebook
 ```
 
-## Пример конфигурации
+## Configuration Example
 
 `config.json`:
 ```json
 {
   "data_source": "pandas",
-  "data_path": "data.parquet",
+  "data_path": ["data.parquet"],
   "algorithm": "kmeans",
   "params": {
     "n_clusters": [2, 3, 4],
