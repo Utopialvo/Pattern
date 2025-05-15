@@ -34,7 +34,7 @@ class BaseDataLoader(DataLoader):
 
         if self.normalizer and self.features is not None:
             self.normalizer.fit(self.features)
-            self.normalizer.save(f"{sources[0].split('.')[0]}.pkl")
+            self.normalizer.save(f"{sources[0].split('.')[0]}.normstats.joblib")
             self.features = self.normalizer.transform(self.features)
 
     def full_data(self) -> Tuple:
@@ -49,7 +49,7 @@ class PandasDataLoader(BaseDataLoader):
     """Data loader for pandas DataFrames."""
     
     def _load_source(self, source: Union[str, pd.DataFrame]) -> pd.DataFrame:
-        assert isinstance(source, str) or isinstance(source, pd.DataFrame)
+        # assert isinstance(source, str) or isinstance(source, pd.DataFrame)
         if isinstance(source, str):
             try:
                 logger.info(f"Loading data from {source}")
@@ -74,7 +74,7 @@ class SparkDataLoader(BaseDataLoader):
         super().__init__(*args, **kwargs)
 
     def _load_source(self, source: Union[str, SparkDataFrame]) -> SparkDataFrame:
-        assert isinstance(source, str) or isinstance(source, SparkDataFrame)
+        # assert isinstance(source, str) or isinstance(source, SparkDataFrame)
         format_loaders = {
             'parquet': self.spark.read.parquet,
             'orc': self.spark.read.orc,

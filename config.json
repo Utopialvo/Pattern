@@ -41,6 +41,6 @@
       200
     ]
   },
-  "metric": "silhouette",
+  "metric": "attribute",
   "output_path": "best_kmeans.joblib"
 }

@@ -12,7 +12,7 @@ A modular toolkit for unsupervised learning tasks with:
 ## Features
 
 - **Algorithms**:
-- **Metrics**: 
+- **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density_modularity
 - **Optimization**: Grid Search, Random Search
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
 - **Serialization**: Joblib/Pickle model persistence
@@ -121,7 +121,7 @@ Pattern/
       200
     ]
   },
-  "metric": "silhouette",
+  "metric": "attribute",
   "output_path": "best_kmeans.joblib"
 }
 ```

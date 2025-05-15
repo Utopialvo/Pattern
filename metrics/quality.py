@@ -1,50 +1,73 @@
 # Файл: metrics/quality.py
 import numpy as np
 import pandas as pd
+from pyspark.sql import DataFrame as SparkDF
 from sklearn.metrics import silhouette_score
 from core.interfaces import Metric
 from config.registries import register_metric
+from metrics.clustering_metrics import FuturesClusteringMetrics, FuturesClusteringMetricsSpark, AdjacencyClusteringMetrics, AdjacencyClusteringMetricsSpark
 
-
-@register_metric('silhouette')
-class SilhouetteScore(Metric):
-    """Calculates silhouette coefficient for clustering quality assessment."""
+def _is_spark(obj) -> bool:
+    """If object is Spark DataFrame?"""
+    return isinstance(obj, SparkDF)
     
-    def calculate(self, data_loader, labels: pd.Series, model_data: dict) -> float:
-        """Compute metric using features and cluster assignments.
-        
-        Args:
-            data_loader: Source containing features DataFrame
-            labels: Cluster assignments for each sample
-            model_data: Additional model information (unused)
-            
-        Returns:
-            Silhouette score between -1 and 1
-        """
-        return silhouette_score(data_loader.features, labels)
+def _is_pandas(obj) -> bool:
+    """If object is Pandas DataFrame?"""
+    return isinstance(obj, pd.DataFrame)
 
-@register_metric('inertia')
-class InertiaScore(Metric):
-    """Calculates sum of squared distances to nearest cluster center."""
+@register_metric('attribute')
+class AttributeMetric(Metric):
+    """Feature clustering quality metrics"""
     
-    def calculate(self, data_loader, labels: pd.Series, model_data: dict) -> float:
-        """Compute total intra-cluster variance.
+    def calculate(self, data_loader, labels, model_data) -> float:
+        if isinstance(data_loader.features, type(None)):
+            return np.nan
+            
+        if _is_spark(data_loader.features):
+            calculator = FuturesClusteringMetricsSpark()
+            features = data_loader.features
+        else:
+            calculator = FuturesClusteringMetrics()
+            features = data_loader.features.values
         
-        Args:
-            data_loader: Source containing features DataFrame
-            labels: Cluster assignments for each sample
-            model_data: Must contain 'centroids' key with cluster centers
+        centroids = model_data.get('centroids', None)
+        
+        try:
+            return calculator.get_metrics(features, labels, centroids)['SW']
+        except NotImplementedError as e:
+            print(f"Metric calculation failed: {str(e)}")
+            return np.nan
+
+@register_metric('graph')
+class GraphMetric(Metric):
+    """Graph clustering quality metrics"""
+    
+    def calculate(self, data_loader, labels, model_data) -> float:
+        if isinstance(data_loader.similarity_matrix, type(None)):
+            return np.nan
             
-        Returns:
-            Total within-cluster sum of squares
+        if _is_spark(data_loader.similarity_matrix):
+            calculator = AdjacencyClusteringMetricsSpark()
+            adj_matrix = data_loader.similarity_matrix
+        else:
+            calculator = AdjacencyClusteringMetrics()
+            adj_matrix = data_loader.similarity_matrix.values
             
-        Raises:
-            KeyError: If centroids missing from model_data
-        """
-        features = data_loader.features.values
-        centroids = model_data.get('centroids')
-        if centroids is None:
-            raise ValueError("Centroids required for inertia calculation")
-        # Vectorized distance calculation
-        distances = np.linalg.norm(features - centroids[labels], axis=1)
-        return np.sum(distances ** 2)
+        try:
+            return calculator.get_metric(adj_matrix, labels)['ANUI']
+        except NotImplementedError as e:
+            print(f"Metric calculation failed: {str(e)}")
+            return np.nan
+
+@register_metric('attribute-graph')
+class AttributeGraphMetric(Metric):
+    """Combined feature and graph metrics"""
+    
+    def calculate(self, data_loader, labels, model_data) -> float:
+        if not ((_is_spark(data_loader.features) or _is_pandas(data_loader.features))
+            or 
+            (_is_spark(data_loader.similarity_matrix) or _is_pandas(data_loader.similarity_matrix))):
+            return np.nan
+        attribute_score = AttributeMetric().calculate(data_loader, labels, model_data)
+        graph_score = GraphMetric().calculate(data_loader, labels, model_data)
+        return np.nanmean([attribute_score, graph_score])
