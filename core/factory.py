@@ -1,11 +1,12 @@
-# Файл: core/abstractions.py
-from typing import Any, Union, Optional
+# Файл: core/factory.py
+from typing import Any, Union, Optional, List, Dict
 from pyspark.sql import SparkSession
 from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
 from optimization.strategies import GridSearch, RandomSearch
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
+from preprocessing.samplers import SparkSampler, PandasSampler
 
 from models import *
 from metrics import *
@@ -46,10 +47,28 @@ class DefaultFactory(ComponentFactory):
         strategies = {'grid': GridSearch, 'random': RandomSearch}
         return strategies[identifier](**kwargs)
     
+    def create_sampler(self, data_src: Union[str, List[str]], spark: SparkSession = None) -> Optional['Sampler']:
+        """Create sampler"""
+        if isinstance(spark, SparkSession):
+            return SparkSampler(data_src = data_src, spark = spark)
+        else:
+            return PandasSampler(data_src = data_src)
+
+    def create_normalizer(self, 
+                          method: Optional[str] = None, 
+                          columns: Optional[List[str]] = None, 
+                          methods: Optional[Dict[str, str]] = None, 
+                          spark: SparkSession = None) -> Optional['Normalizer']:
+        """Create normalizer"""
+        if isinstance(spark, SparkSession):
+            return SparkNormalizer(method = method, columns = columns, methods = methods, spark = spark)
+        else:
+            return PandasNormalizer(method = method, columns = columns, methods = methods)
+    
     def create_loader(self,
                      data_src: Union[str, list, tuple],
                      normalizer: Optional[Union[SparkNormalizer, PandasNormalizer, str]] = None,
-                     sampler: Optional['Sampler'] = None,
+                     sampler: Optional[Union[SparkSampler, PandasSampler, str]] = None,
                      spark: Optional[SparkSession] = None,
                      **kwargs) -> DataLoader:
         """Create appropriate data loader with normalization.

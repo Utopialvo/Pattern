@@ -32,6 +32,8 @@ class BaseDataLoader(DataLoader):
             )
 
         if self.normalizer and self.features is not None:
+            self.normalizer.fit(self.features)
+            self.normalizer.save(f"{sources[0].split('.')[0]}.pkl")
             self.features = self.normalizer.transform(self.features)
 
     def full_data(self) -> Tuple:

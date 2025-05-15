@@ -59,8 +59,8 @@ def main():
     
     # Configure data processing components
     components = {
-        'normalizer': config.get('normalizer'),
-        'sampler': config.get('sampler')
+        'normalizer': factory.create_normalizer(spark = spark, **config.get('preprocessing').get('normalizer')),
+        'sampler': factory.create_sampler(spark = spark, **config.get('preprocessing').get('sampler'))
     }
 
     # Initialize core components

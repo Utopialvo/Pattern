@@ -5,6 +5,7 @@ from pyspark.sql import SparkSession
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from core.interfaces import ComponentFactory, ClusterModel
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
+from preprocessing.samplers import SparkSampler, PandasSampler
 from core.factory import factory
 import pandas as pd
 
@@ -13,7 +14,8 @@ def train_pipeline(
     similarity_src: Optional[Union[str, pd.DataFrame]] = None,
     algorithm: str = 'kmeans',
     param_grid: Optional[Dict[str, list[Any]]] = None,
-    normalizer: Optional[Union[str, dict, SparkNormalizer, PandasNormalizer]] = None,
+    normalizer: Optional[Union[dict, str]] = None,
+    sampler: Optional[Union[dict, str]] = None,
     metric: str = 'silhouette',
     optimizer: str = 'grid',
     custom_factory: Optional[ComponentFactory] = None,
@@ -33,6 +35,7 @@ def train_pipeline(
         algorithm: Model algorithm identifier (default: 'kmeans')
         param_grid: Hyperparameter search space (parameter -> values)
         normalizer: Normalization configuration (path/object/dict) (optional)
+        sampler: Sampler configuration (path/object/dict) (optional)
         metric: Optimization metric identifier (default: 'silhouette')
         optimizer: Search strategy ('grid' or 'random') (default: 'grid')
         custom_factory: Alternative component factory (optional)
@@ -64,6 +67,17 @@ def train_pipeline(
         else:
             normalizer = PandasNormalizer.load(normalizer)
 
+    # # Sampler initialization (placeholder)
+    # if isinstance(sampler, str):
+    #     if spark is not None:
+    #         normalizer = SparkSampler.load(sampler)
+    #     else:
+    #         normalizer = PandasSampler.load(sampler)
+    if isinstance(normalizer, dict):
+        normalizer = used_factory.create_normalizer(spark = spark, **normalizer)
+    if isinstance(sampler, dict):
+        sampler= used_factory.create_sampler(spark = spark, **sampler)
+
     # Parameter validation
     for param, values in param_grid.items():
         if not isinstance(values, list):
@@ -74,9 +88,10 @@ def train_pipeline(
     # Component initialization
     model_class = MODEL_REGISTRY[algorithm]['class']
     data_loader = used_factory.create_loader(
-        data_src=data_sources,
-        spark=spark,
-        normalizer=normalizer,
+        data_src = data_sources,
+        normalizer = normalizer,
+        sampler = sampler,
+        spark = spark,
         **kwargs
     )
     
@@ -93,9 +108,10 @@ def train_pipeline(
     # Final model training
     best_model = used_factory.create_model(algorithm, best_params)
     data_loader = used_factory.create_loader(
-        data_src=data_sources,
-        spark=spark,
-        normalizer=normalizer,
+        data_src = data_sources,
+        normalizer = normalizer,
+        sampler = sampler,
+        spark = spark,
         **kwargs
     )
     best_model.fit(data_loader=data_loader)

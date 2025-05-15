@@ -80,13 +80,48 @@ Pattern/
 ```json
 {
   "data_source": "pandas",
-  "data_path": ["data.parquet"],
+  "preprocessing": {
+    "normalizer": {
+      "methods": {
+        "x1": "zscore",
+        "x2": "range",
+        "x3": "minmax"
+      },
+      "columns": [
+        "x1",
+        "x2",
+        "x3"
+      ]
+    },
+    "sampler": {
+      "data_src": [
+        "data.parquet",
+        null
+      ]
+    }
+  },
+  "data_path": [
+    "data.parquet",
+    null
+  ],
   "algorithm": "kmeans",
   "params": {
-    "n_clusters": [2, 3, 4],
-    "init": ["k-means++", "random"]
+    "n_clusters": [
+      3,
+      5,
+      7,
+      10
+    ],
+    "init": [
+      "k-means++",
+      "random"
+    ],
+    "max_iter": [
+      100,
+      200
+    ]
   },
   "metric": "silhouette",
-  "output_path": "model.pkl"
+  "output_path": "best_kmeans.joblib"
 }
 ```
