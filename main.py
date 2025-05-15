@@ -1,10 +1,13 @@
 # Файл: main.py
 import sys
+import logging
 from pyspark.sql import SparkSession
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from config.validator import load_config
 from cli.parsers import create_root_parser, create_method_subparsers
 from core.factory import factory
+from core.logger import logger, log_errors
+
 
 def print_help():
     """Display extended help information."""
@@ -34,11 +37,15 @@ def handle_list_command():
     print("\nAvailable metrics:")
     print('\n'.join(METRIC_REGISTRY.keys()))
 
+@log_errors
 def main():
     # Initialize command line interface
     parser = create_root_parser()
     create_method_subparsers(parser)
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     if args.help:
         print_help()

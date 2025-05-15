@@ -11,7 +11,7 @@ def create_root_parser() -> argparse.ArgumentParser:
         add_help=False,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    
+    parser.add_argument('--debug', action='store_true', help='Enable debug logging')
     main_group = parser.add_argument_group('Main parameters')
     main_group.add_argument(
         '-c', '--config_path',
@@ -30,6 +30,7 @@ def create_root_parser() -> argparse.ArgumentParser:
         action='store_true',
         help='List available algorithms and metrics'
     )
+    
     return parser
 
 def create_method_subparsers(parser: argparse.ArgumentParser) -> None:

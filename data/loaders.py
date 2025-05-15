@@ -4,6 +4,7 @@ import pandas as pd
 from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from core.interfaces import DataLoader
 from abc import abstractmethod
+from core.logger import logger
 
 class BaseDataLoader(DataLoader):
     """Base data loader implementing common functionality."""
@@ -48,8 +49,14 @@ class PandasDataLoader(BaseDataLoader):
     """Data loader for pandas DataFrames."""
     
     def _load_source(self, source: Union[str, pd.DataFrame]) -> pd.DataFrame:
+        assert isinstance(source, str) or isinstance(source, pd.DataFrame)
         if isinstance(source, str):
-            return pd.read_parquet(source) if source.endswith('.parquet') else pd.read_csv(source)
+            try:
+                logger.info(f"Loading data from {source}")
+                return pd.read_parquet(source) if source.endswith('.parquet') else pd.read_csv(source)
+            except Exception as e:
+                logger.error(f"Failed to load {source}: {str(e)}")
+                raise
         return source
 
     def iter_batches(self, batch_size: int) -> Iterator[Tuple]:
@@ -67,15 +74,20 @@ class SparkDataLoader(BaseDataLoader):
         super().__init__(*args, **kwargs)
 
     def _load_source(self, source: Union[str, SparkDataFrame]) -> SparkDataFrame:
+        assert isinstance(source, str) or isinstance(source, SparkDataFrame)
         format_loaders = {
             'parquet': self.spark.read.parquet,
             'orc': self.spark.read.orc,
             'csv': lambda x: self.spark.read.csv(x, header=True)
         }
-        
         if isinstance(source, str):
-            fmt = source.split('.')[-1]
-            return format_loaders.get(fmt, format_loaders['parquet'])(source)
+            try:
+                logger.info(f"Loading data from {source}")
+                fmt = source.split('.')[-1]
+                return format_loaders.get(fmt, format_loaders['parquet'])(source)
+            except Exception as e:
+                logger.error(f"Failed to load {source}: {str(e)}")
+                raise
         return source
 
     def iter_batches(self, batch_size: int) -> Iterator[Tuple]:

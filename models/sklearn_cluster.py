@@ -1,6 +1,5 @@
 # Файл: models/sklearn_cluster.py
-from pathlib import Path
-import pickle
+import joblib
 import pandas as pd
 from sklearn.cluster import KMeans, DBSCAN
 from numbers import Number
@@ -22,17 +21,15 @@ class SklearnClusterModel(ClusterModel):
 
     def save(self, path: str) -> None:
         """Persist model to disk."""
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, 'wb') as f:
-            pickle.dump(self, f)
+        model_params = self.model.get_params()
+        joblib.dump(model_params, path)
 
     @classmethod
     def load(cls, path: str) -> 'SklearnClusterModel':
         """Load model from disk."""
-        with open(path, 'rb') as f:
-            model = pickle.load(f)
-        if not isinstance(model, cls):
-            raise ValueError(f"Invalid model type. Expected {cls.__name__}")
+        params = joblib.load(path)
+        model = cls(params)  # Создание нового экземпляра
+        model.model = model.model.set_params(**params)
         return model
 
 @register_model(
