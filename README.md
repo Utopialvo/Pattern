@@ -13,9 +13,9 @@ A modular toolkit for unsupervised learning tasks with:
 
 - **Algorithms**:
 - **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density_modularity
-- **Optimization**: Grid Search, Random Search
+- **Optimization**: Grid Search, Random Search, Tree-structured Parzen Estimator algorithm
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
-- **Serialization**: Joblib/Pickle model persistence
+- **Serialization**: Joblib model persist
 
 ## Requirements
 
@@ -26,6 +26,8 @@ A modular toolkit for unsupervised learning tasks with:
   - pandas
   - numpy
   - joblib
+  - optuna
+  - torch
 
 ## Installation
 
@@ -80,6 +82,7 @@ Pattern/
 ```json
 {
   "data_source": "pandas",
+  "optimizer": "tpe",
   "preprocessing": {
     "normalizer": {
       "methods": {

@@ -1,5 +1,6 @@
 {
   "data_source": "pandas",
+  "optimizer": "tpe",
   "preprocessing": {
     "normalizer": {
       "methods": {

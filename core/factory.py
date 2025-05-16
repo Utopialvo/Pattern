@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
-from optimization.strategies import GridSearch, RandomSearch
+from optimization.strategies import GridSearch, RandomSearch, TPESearch
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
 
@@ -44,7 +44,11 @@ class DefaultFactory(ComponentFactory):
     
     def create_optimizer(self, identifier: str, **kwargs) -> Optimizer:
         """Create hyperparameter optimization strategy."""
-        strategies = {'grid': GridSearch, 'random': RandomSearch}
+        strategies = {
+            'grid': GridSearch, 
+            'random': RandomSearch,
+            'tpe': TPESearch
+        }
         return strategies[identifier](**kwargs)
     
     def create_sampler(self, data_src: Union[str, List[str]], spark: SparkSession = None) -> Optional['Sampler']:

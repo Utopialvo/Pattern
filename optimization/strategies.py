@@ -1,70 +1,105 @@
 # Файл: optimization/strategies.py
-import itertools
-import random
-from typing import Dict, Any, Type
+from typing import Dict, Any, Type, List
+import optuna
+from optuna.samplers import TPESampler, RandomSampler, GridSampler
 from core.interfaces import Optimizer, DataLoader, Metric
 
-class GridSearch(Optimizer):
-    """Exhaustive search over hyperparameter combinations."""
+
+class BaseOptimizer(Optimizer):
+    """Base class for optimization"""
     
+    def __init__(self, 
+                 sampler: str = 'tpe', 
+                 direction: str = 'maximize'):
+        """
+        Args:
+            sampler: Optuna sampler type ('tpe', 'random', 'grid')
+            direction: Optimization direction (our case 'maximize', becouse SW or GAP 1 is best, and ANUI or modularity 1 is best)
+        """
+        self.sampler = sampler
+        self.direction = direction
+        self.param_grid = None
+        
+    def _get_sampler(self):
+        if self.sampler == 'grid':
+            if not self.param_grid:
+                raise ValueError("requires param_grid")
+            return GridSampler(self.param_grid, seed=0)
+        elif self.sampler == 'tpe':
+            return TPESampler(seed=0)
+        elif self.sampler == 'random':
+            return RandomSampler(seed=0)
+    
+    def _calculate_n_trials(self, param_grid: Dict[str, List[Any]]) -> int:
+        """Automatically determine optimal number of trials."""
+        total_combinations = 1
+        for values in param_grid.values():
+            total_combinations *= len(values) # заглушка чтобы не использовать itertools
+            
+        if isinstance(self.sampler, GridSampler):
+            return total_combinations
+        if total_combinations <= 100:
+            return total_combinations
+        auto_trials = max(100, int(0.25 * total_combinations)) # 25% от общего заглушка
+        return min(auto_trials, self.max_trials)
+
     def find_best(self, 
                  model_class: Type, 
                  data_loader: DataLoader, 
-                 param_grid: Dict[str, list],
+                 param_grid: Dict[str, list], 
                  metric: Metric) -> Dict[str, Any]:
-        """Perform grid search optimization.
         
-        Args:
-            model_class: Model class to optimize
-            data_loader: Data source for training/validation
-            param_grid: Parameter search space {parameter: [values]}
-            metric: Evaluation metric to maximize
-            
-        Returns:
-            Best performing parameter configuration
-            
-        Note:
-            Prints information about failed parameter combinations
-        """
-        best_score = -float('inf')
-        best_params = {}
+        self.param_grid = param_grid
+        sampler = self._get_sampler()
+        n_trials = self._calculate_n_trials(param_grid)
         
-        for params in self._generate_params(param_grid):
+        if isinstance(self.sampler, GridSampler):
+            study = optuna.create_study(
+                direction=self.direction,
+                sampler=sampler,
+                search_space=self.param_grid
+            )
+        else:
+            study = optuna.create_study(
+                direction=self.direction,
+                sampler=sampler
+            )
+        
+        def objective(trial):
+            params = {}
+            for param, values in param_grid.items():
+                if all(isinstance(v, (int, float)) for v in values):
+                    if all(isinstance(v, int) for v in values):
+                        params[param] = trial.suggest_int(param, min(values), max(values))
+                    else:
+                        params[param] = trial.suggest_float(param, min(values), max(values))
+                else:
+                    params[param] = trial.suggest_categorical(param, values)
+            
             try:
                 model = model_class(params)
                 model.fit(data_loader)
                 labels = model.predict(data_loader)
-                
-                score = metric.calculate(
-                    data_loader=data_loader,
-                    labels=labels,
-                    model_data=model.model_data
-                )
-                
-                if score > best_score:
-                    best_score, best_params = score, params.copy()
-                    
+                score = metric.calculate(data_loader, labels, model.model_data)
+                return score
             except Exception as e:
-                print(f"Skipped {params}: {str(e)}")
-                
-        return best_params
+                raise optuna.TrialPruned()
 
-    def _generate_params(self, param_grid: Dict[str, list]) -> Dict[str, Any]:
-        """Generate all parameter combinations from grid."""
-        for values in itertools.product(*param_grid.values()):
-            yield dict(zip(param_grid.keys(), values))
+        study.optimize(objective, n_trials=n_trials)
+        print(study.best_params)
+        return study.best_params
 
-class RandomSearch(GridSearch):
-    """Random parameter search with limited iterations."""
-    
-    def __init__(self, n_iter: int = 10):
-        """
-        Args:
-            n_iter: Number of random parameter combinations to test
-        """
-        self.n_iter = n_iter
+class TPESearch(BaseOptimizer):
+    """TPE optimization"""
+    def __init__(self, n_trials=100):
+        super().__init__(sampler='tpe')
 
-    def _generate_params(self, param_grid: Dict[str, list]) -> Dict[str, Any]:
-        """Generate random parameter combinations."""
-        for _ in range(self.n_iter):
-            yield {k: random.choice(v) for k, v in param_grid.items()}
+class RandomSearch(BaseOptimizer):
+    """Random search optimization"""
+    def __init__(self, n_trials=100):
+        super().__init__(sampler='random')
+
+class GridSearch(BaseOptimizer):
+    """Grid search optimization"""
+    def __init__(self):
+        super().__init__(sampler='grid') 
