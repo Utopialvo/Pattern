@@ -102,9 +102,11 @@ class PandasSampler(BaseSampler):
                    features: pd.DataFrame, 
                    similarity: Optional[pd.DataFrame]) -> None:
         """placeholder"""
-        self.features_sample = features.sample(frac=0.1, random_state=42)
-        if similarity is not None:
-            self.similarity_sample = similarity.sample(frac=0.1, random_state=42)
+        if not isinstance(features, type(None)):
+            self.features_sample = features.sample(frac=0.1, random_state=42)
+        if not isinstance(similarity, type(None)):
+            # self.similarity_sample = similarity.sample(frac=0.1, random_state=42) #placeholder
+            self.similarity_sample = similarity
 
     def _savesample(self) -> None:
         """Save samples with .sample suffix"""
@@ -147,9 +149,11 @@ class SparkSampler(BaseSampler):
                    features: SparkDF, 
                    similarity: Optional[SparkDF]) -> None:
         """placeholder"""
-        self.features_sample = features.limit(1000)
-        if similarity is not None:
-            self.similarity_sample = similarity.limit(1000)
+        if not isinstance(features, type(None)):
+            self.features_sample = features.limit(1000)
+        if not isinstance(similarity, type(None)):
+            # self.similarity_sample = similarity.limit(1000) # placeholder
+            self.similarity_sample = similarity
 
     def _savesample(self) -> None:
         """Save samples with .sample suffix"""

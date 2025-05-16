@@ -107,12 +107,5 @@ def train_pipeline(
     
     # Final model training
     best_model = used_factory.create_model(algorithm, best_params)
-    data_loader = used_factory.create_loader(
-        data_src = data_sources,
-        normalizer = normalizer,
-        sampler = sampler,
-        spark = spark,
-        **kwargs
-    )
     best_model.fit(data_loader=data_loader)
     return best_model

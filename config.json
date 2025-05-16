@@ -2,46 +2,40 @@
   "data_source": "pandas",
   "optimizer": "tpe",
   "preprocessing": {
-    "normalizer": {
-      "methods": {
-        "x1": "zscore",
-        "x2": "range",
-        "x3": "minmax"
-      },
-      "columns": [
-        "x1",
-        "x2",
-        "x3"
-      ]
-    },
     "sampler": {
       "data_src": [
-        "data.parquet",
-        null
+        null,
+        "data_graph.parquet"
       ]
     }
   },
   "data_path": [
-    "data.parquet",
-    null
+    null,
+    "data_graph.parquet"
   ],
-  "algorithm": "kmeans",
+  "algorithm": "spectral",
   "params": {
     "n_clusters": [
+      2,
       3,
+      4,
       5,
-      7,
-      10
+      6,
+      7
     ],
-    "init": [
-      "k-means++",
-      "random"
+    "n_neighbors": [
+      3,
+      10,
+      15
     ],
-    "max_iter": [
-      100,
-      200
+    "assign_labels": [
+      "kmeans",
+      "discretize"
+    ],
+    "degree": [
+      1
     ]
   },
-  "metric": "attribute",
-  "output_path": "best_kmeans.joblib"
+  "metric": "graph",
+  "output_path": "best_spectral.joblib"
 }

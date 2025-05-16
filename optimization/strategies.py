@@ -4,6 +4,8 @@ import optuna
 from optuna.samplers import TPESampler, RandomSampler, GridSampler
 from core.interfaces import Optimizer, DataLoader, Metric
 
+from core.logger import log_errors
+
 
 class BaseOptimizer(Optimizer):
     """Base class for optimization"""
@@ -38,10 +40,10 @@ class BaseOptimizer(Optimizer):
             
         if isinstance(self.sampler, GridSampler):
             return total_combinations
-        if total_combinations <= 100:
+        if total_combinations <= 50:
             return total_combinations
-        auto_trials = max(100, int(0.25 * total_combinations)) # 25% от общего заглушка
-        return min(auto_trials, self.max_trials)
+        auto_trials = max(50, int(0.33 * total_combinations)) # 33% от общего заглушка
+        return auto_trials
 
     def find_best(self, 
                  model_class: Type, 
@@ -64,7 +66,8 @@ class BaseOptimizer(Optimizer):
                 direction=self.direction,
                 sampler=sampler
             )
-        
+            
+        @log_errors
         def objective(trial):
             params = {}
             for param, values in param_grid.items():
@@ -86,7 +89,6 @@ class BaseOptimizer(Optimizer):
                 raise optuna.TrialPruned()
 
         study.optimize(objective, n_trials=n_trials)
-        print(study.best_params)
         return study.best_params
 
 class TPESearch(BaseOptimizer):

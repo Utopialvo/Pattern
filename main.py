@@ -64,18 +64,21 @@ def main():
     # Initialize execution environment
     spark = SparkSession.builder.getOrCreate() if config['data_source'] == 'spark' else None
     
+    sampler = None
+    normalizer = None
     # Configure data processing components
-    components = {
-        'normalizer': factory.create_normalizer(spark = spark, **config.get('preprocessing').get('normalizer')),
-        'sampler': factory.create_sampler(spark = spark, **config.get('preprocessing').get('sampler'))
-    }
+    if config.get('preprocessing').get('sampler'):
+        sampler = factory.create_sampler(spark = spark, **config.get('preprocessing').get('sampler'))
+    if config.get('preprocessing').get('normalizer'):
+        normalizer = factory.create_normalizer(spark = spark, **config.get('preprocessing').get('normalizer'))
 
     # Initialize core components
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
     data_loader = factory.create_loader(
         config['data_path'],
         spark=spark,
-        **components
+        normalizer = normalizer,
+        sampler = sampler
     )
     
     # Execute optimization pipeline

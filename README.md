@@ -11,7 +11,7 @@ A modular toolkit for unsupervised learning tasks with:
 
 ## Features
 
-- **Algorithms**:
+- **Algorithms**: KMeans, DBSCAN, Louvain, Spectral
 - **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density_modularity
 - **Optimization**: Grid Search, Random Search, Tree-structured Parzen Estimator algorithm
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
@@ -28,6 +28,7 @@ A modular toolkit for unsupervised learning tasks with:
   - joblib
   - optuna
   - torch
+  - networkx
 
 ## Installation
 

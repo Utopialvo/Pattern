@@ -1,6 +1,7 @@
 # Файл: models/sklearn_cluster.py
 import joblib
 import pandas as pd
+import numpy as np
 from sklearn.cluster import KMeans, DBSCAN
 from numbers import Number
 from core.interfaces import ClusterModel, DataLoader
@@ -9,15 +10,25 @@ from config.registries import register_model
 class SklearnClusterModel(ClusterModel):
     """Base class for scikit-learn clustering implementations."""
     
+    # def fit(self, data_loader: DataLoader) -> None:
+    #     """Fit model to data from loader."""
+    #     features, _ = data_loader.full_data()
+    #     self.model.fit(features)
+
+    # def predict(self, data_loader: DataLoader) -> np.ndarray:
+    #     """Predict cluster labels for new data."""
+    #     features, _ = data_loader.full_data()
+    #     return self.model.predict(features)
+
     def fit(self, data_loader: DataLoader) -> None:
         """Fit model to data from loader."""
         features, _ = data_loader.full_data()
         self.model.fit(features)
 
-    def predict(self, data_loader: DataLoader) -> pd.Series:
+    def predict(self, data_loader: DataLoader) -> np.ndarray:
         """Predict cluster labels for new data."""
         features, _ = data_loader.full_data()
-        return pd.Series(self.model.predict(features))
+        return self.model.predict(features)
 
     def save(self, path: str) -> None:
         """Persist model to disk."""
@@ -28,7 +39,7 @@ class SklearnClusterModel(ClusterModel):
     def load(cls, path: str) -> 'SklearnClusterModel':
         """Load model from disk."""
         params = joblib.load(path)
-        model = cls(params)  # Создание нового экземпляра
+        model = cls(params)
         model.model = model.model.set_params(**params)
         return model
 
