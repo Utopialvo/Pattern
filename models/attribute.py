@@ -1,4 +1,4 @@
-# Файл: models/sklearn_cluster.py
+# Файл: models/attribute.py
 import joblib
 import pandas as pd
 import numpy as np

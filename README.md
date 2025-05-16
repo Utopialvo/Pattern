@@ -11,7 +11,7 @@ A modular toolkit for unsupervised learning tasks with:
 
 ## Features
 
-- **Algorithms**: KMeans, DBSCAN, Louvain, Spectral
+- **Algorithms**: KMeans, DBSCAN, Louvain, Spectral, Deep Modularity Network (DMoN)
 - **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density_modularity
 - **Optimization**: Grid Search, Random Search, Tree-structured Parzen Estimator algorithm
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
@@ -19,8 +19,8 @@ A modular toolkit for unsupervised learning tasks with:
 
 ## Requirements
 
-- Python 3.8+
-- PySpark 3.2.1+ (optional for Spark mode)
+- Python 3.11.10
+- PySpark 3.3.1+ (optional for Spark mode)
 - Core Dependencies:
   - scikit-learn
   - pandas
@@ -29,6 +29,7 @@ A modular toolkit for unsupervised learning tasks with:
   - optuna
   - torch
   - networkx
+  - torch_geometric
 
 ## Installation
 
@@ -74,6 +75,7 @@ Pattern/
 ├── main.py            # Entry point
 ├── README.md          # Project documentation
 ├── config.json        # Example configuration
+├── cora.npz           # The Cora dataset consists of 2708 scientific publications classified into one of seven classes
 └── Test.ipynb         # Example notebook
 ```
 
