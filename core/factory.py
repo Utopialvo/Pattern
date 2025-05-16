@@ -33,8 +33,11 @@ class DefaultFactory(ComponentFactory):
             
         if missing := set(meta['params_help']) - config.keys():
             raise ValueError(f"Missing required parameters for {identifier}: {missing}")
-            
-        return meta['class'](config)
+
+        model = meta['class'](config)
+        if not isinstance(model, ClusterModel):
+            raise TypeError(f"{identifier} is not a ClusterModel subclass")
+        return model
     
     def create_metric(self, identifier: str) -> Metric:
         """Create metric instance from registry."""

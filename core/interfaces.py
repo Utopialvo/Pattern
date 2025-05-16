@@ -24,15 +24,15 @@ class DataLoader(ABC):
 
     @abstractmethod
     def _load(self, *data_src: Union[str, pd.DataFrame, SparkDataFrame]):
-        """Загружает данные из одного или двух источников"""
+        """Load and preprocess data from source(s)."""
 
     @abstractmethod
     def iter_batches(self, batch_size: int) -> Iterator[Tuple]:
-        """Generate data batches with optional shuffling"""
+        """Generate data batches with optional shuffling."""
 
     @abstractmethod
     def full_data(self) -> Tuple:
-        """Retrieve complete dataset as a tuple of features and labels"""
+        """Return complete dataset as (features, similarity_matrix)."""
 
 
 class ClusterModel(ABC):

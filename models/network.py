@@ -2,6 +2,7 @@
 import networkx as nx
 import numpy as np
 import joblib
+from abc import abstractmethod
 from sklearn.cluster import SpectralClustering
 from config.registries import register_model
 from core.interfaces import ClusterModel
@@ -19,10 +20,11 @@ class NetworkClusterModel(ClusterModel):
         return {}
     
     @classmethod
+    @abstractmethod
     def load(cls, path: str) -> 'NetworkClusterModel':
         """Base load method"""
         pass
-
+    @abstractmethod
     def save(self, path: str) -> None:
         """Base save method"""
         pass

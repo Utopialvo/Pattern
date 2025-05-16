@@ -10,16 +10,6 @@ from config.registries import register_model
 class SklearnClusterModel(ClusterModel):
     """Base class for scikit-learn clustering implementations."""
     
-    # def fit(self, data_loader: DataLoader) -> None:
-    #     """Fit model to data from loader."""
-    #     features, _ = data_loader.full_data()
-    #     self.model.fit(features)
-
-    # def predict(self, data_loader: DataLoader) -> np.ndarray:
-    #     """Predict cluster labels for new data."""
-    #     features, _ = data_loader.full_data()
-    #     return self.model.predict(features)
-
     def fit(self, data_loader: DataLoader) -> None:
         """Fit model to data from loader."""
         features, _ = data_loader.full_data()

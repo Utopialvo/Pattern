@@ -5,6 +5,7 @@ from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from core.interfaces import DataLoader
 from abc import abstractmethod
 from core.logger import logger
+from data.utils import transform_edgelist
 
 class BaseDataLoader(DataLoader):
     """Base data loader implementing common functionality."""
@@ -18,7 +19,7 @@ class BaseDataLoader(DataLoader):
         self.sampler = sampler
         self._load(data_src)
 
-    def _load(self, data_src: Union[str, list, tuple]) -> None:
+    def _load(self, data_src: Union[str, list, tuple, pd.DataFrame, SparkDataFrame]) -> None:
         """Load and preprocess data from source(s)."""
         if isinstance(data_src, list) and len(data_src) > 2:
             raise ValueError("Maximum 2 data sources supported")
@@ -37,6 +38,8 @@ class BaseDataLoader(DataLoader):
             self.normalizer.save(f"{sources[0].split('.')[0]}.normstats.joblib")
             self.features = self.normalizer.transform(self.features)
 
+        self.similarity_matrix = transform_edgelist(self.similarity_matrix)
+        
     def full_data(self) -> Tuple:
         """Return complete dataset as (features, similarity_matrix)."""
         return (self.features, self.similarity_matrix)
@@ -45,11 +48,14 @@ class BaseDataLoader(DataLoader):
     def _load_source(self, source: Union[str, Any]):
         """Load individual data source (implemented in subclasses)."""
 
+    @abstractmethod
+    def iter_batches(self, batch_size: int) -> Iterator[Tuple]:
+        pass
+
 class PandasDataLoader(BaseDataLoader):
     """Data loader for pandas DataFrames."""
     
     def _load_source(self, source: Union[str, pd.DataFrame]) -> pd.DataFrame:
-        # assert isinstance(source, str) or isinstance(source, pd.DataFrame)
         if isinstance(source, str):
             try:
                 logger.info(f"Loading data from {source}")
@@ -74,7 +80,6 @@ class SparkDataLoader(BaseDataLoader):
         super().__init__(*args, **kwargs)
 
     def _load_source(self, source: Union[str, SparkDataFrame]) -> SparkDataFrame:
-        # assert isinstance(source, str) or isinstance(source, SparkDataFrame)
         format_loaders = {
             'parquet': self.spark.read.parquet,
             'orc': self.spark.read.orc,

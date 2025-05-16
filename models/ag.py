@@ -109,9 +109,9 @@ class DMoN(ClusterModel):
     def fit(self, data_loader):
         features, adj_matrix = data_loader.full_data()
         
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        features_tensor = torch.FloatTensor(features.values).to(device)
-        adj_tensor = torch.FloatTensor(adj_matrix.values).to(device)
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        features_tensor = torch.FloatTensor(features.values).to(self.device)
+        adj_tensor = torch.FloatTensor(adj_matrix.values).to(self.device)
         edge_index, edge_attr = dense_to_sparse(adj_tensor)
 
         
@@ -122,7 +122,7 @@ class DMoN(ClusterModel):
             lambda_=self.params.get('lambda_', {'modularity': 1.0, 'collapse': 1.0, 
                                                 'distance':0.0, 'variance': 0.0, 'entropy':0.0}),
             dropout=self.params.get('dropout', 0.5)
-        ).to(device)
+        ).to(self.device)
 
         optimizer = torch.optim.Adam(
             self.model.parameters(), 
@@ -158,14 +158,16 @@ class DMoN(ClusterModel):
         torch.save({
             'model_state': self.model.state_dict(),
             'params': self.params,
+            'device':self.device,
             'labels': self.labels
         }, path)
 
     @classmethod
     def load(cls, path: str) -> 'DMoN':
-        data = torch.load(path)
+        data = torch.load(path, map_location=torch.device('cpu'))
         model = cls(data['params'])
         model.model.load_state_dict(data['model_state'])
+        model.model.to(data['device'])
         model.labels = data['labels']
         return model
 
