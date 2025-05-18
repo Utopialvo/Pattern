@@ -14,6 +14,7 @@ class SklearnClusterModel(ClusterModel):
         """Fit model to data from loader."""
         features, _ = data_loader.full_data()
         self.model.fit(features)
+        self.labels_ = self.model.predict(features)
 
     def predict(self, data_loader: DataLoader) -> np.ndarray:
         """Predict cluster labels for new data."""
@@ -22,15 +23,19 @@ class SklearnClusterModel(ClusterModel):
 
     def save(self, path: str) -> None:
         """Persist model to disk."""
-        model_params = self.model.get_params()
-        joblib.dump(model_params, path)
+        data = {
+            'params': self.model.get_params(),
+            'labels': self.model.labels_
+        }
+        joblib.dump(data, path)
 
     @classmethod
     def load(cls, path: str) -> 'SklearnClusterModel':
         """Load model from disk."""
-        params = joblib.load(path)
-        model = cls(params)
+        data = joblib.load(path)
+        model = cls(data['params'])
         model.model = model.model.set_params(**params)
+        model.labels_ = data['labels']
         return model
 
 @register_model(
@@ -48,6 +53,7 @@ class SklearnKMeans(SklearnClusterModel):
         self._validate_params(params)
         self.model = KMeans(**params)
         self._centroids = None
+        self.labels_ = None
 
     def _validate_params(self, params: dict) -> None:
         """Validate KMeans-specific parameters."""
@@ -75,7 +81,8 @@ class SklearnDBSCAN(SklearnClusterModel):
     def __init__(self, params: dict):
         self._validate_params(params)
         self.model = DBSCAN(**params)
-
+        self.labels_ = None
+        
     def _validate_params(self, params: dict) -> None:
         """Validate DBSCAN-specific parameters."""
         if not isinstance(params.get('eps'), Number) or params['eps'] <= 0:

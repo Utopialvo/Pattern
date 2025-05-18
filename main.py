@@ -64,13 +64,11 @@ def main():
     # Initialize execution environment
     spark = SparkSession.builder.getOrCreate() if config['data_source'] == 'spark' else None
     
-    sampler = None
-    normalizer = None
     # Configure data processing components
-    if config.get('preprocessing').get('sampler'):
-        sampler = factory.create_sampler(spark = spark, **config.get('preprocessing').get('sampler'))
-    if config.get('preprocessing').get('normalizer'):
-        normalizer = factory.create_normalizer(spark = spark, **config.get('preprocessing').get('normalizer'))
+    if sampler := config.get('preprocessing').get('sampler'):
+        sampler = factory.create_sampler(spark = spark, **sampler)
+    if normalizer := config.get('preprocessing').get('normalizer'):
+        normalizer = factory.create_normalizer(spark = spark, **normalizer)
 
     # Initialize core components
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
@@ -84,21 +82,29 @@ def main():
     # Execute optimization pipeline
     optimizer = factory.create_optimizer(config.get('optimizer', 'grid'))
     metric = factory.create_metric(config['metric'])
-    
+
+    print('Start find best params...')
     best_params = optimizer.find_best(
         model_class=model_class,
         data_loader=data_loader,
         param_grid=config['params'],
         metric=metric
     )
+    print(f"Optimal parameters: {best_params}")
 
+    
     # Save final model if requested
     if output_path := config.get('output_path'):
         best_model = factory.create_model(config['algorithm'], best_params)
         best_model.fit(data_loader)
         best_model.save(output_path)
+        print(f"Saving model: {output_path}")
 
-    print(f"Optimal parameters: {best_params}")
+    # Visualize result model
+    if plots_path := config.get('plots_path'):
+        visualizer = factory.create_visualizer(plots_path)
+        visualizer.visualisation(data_loader, best_model.labels_)
+
 
 if __name__ == "__main__":
     main()

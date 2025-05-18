@@ -96,20 +96,26 @@ class SpectralGraphCluster(NetworkClusterModel):
             affinity='precomputed',
             **params
         )
+        self.labels_ = None
 
     def fit(self, data_loader) -> None:
         _, adj_matrix = data_loader.full_data()
         self.model.fit(adj_matrix.values)
+        self.labels_ = self.model.labels_
 
     def _predict(self, adj_matrix: np.ndarray) -> np.ndarray:
         return self.model.labels_
         
     def save(self, path: str) -> None:
+        data = {
+            'model': self.model,
+            'labels': self.labels_
+        }
         joblib.dump(self.model, path)
 
     @classmethod
     def load(cls, path: str) -> 'SpectralGraphCluster':
         _model = joblib.load(path)
-        model = cls({})
-        model.model = _model
+        model = data['model']
+        model.labels_ = data['labels']
         return model

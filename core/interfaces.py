@@ -111,6 +111,69 @@ class Optimizer(ABC):
             Best performing parameter configuration
         """
 
+class DataVis(ABC):
+    """Abstract base class for clustering visualisation."""
+    
+    @abstractmethod
+    def visualisation(self,
+                  data_loader: DataLoader,
+                  labels: Union[pd.Series, pd.DataFrame, SparkDataFrame], 
+                  model_data: dict) -> float:
+        """
+        Create visualisation for clustering results
+        
+        Args:
+            data_loader: Source of input data
+            labels: Predicted cluster assignments
+            model_data: Internal model state data
+            
+        Returns:
+            Save clustering visualisation
+        """
+        
+class Normalizer(ABC):
+    """Abstract base class for data normalization."""
+    
+    @abstractmethod
+    def save(self, path: str) -> None:
+        """Persist normalization parameters to disk."""        
+    @abstractmethod
+    def load(self, path: str) -> None:
+        """Load normalization parameters from disk"""
+    @abstractmethod
+    def fit(self, df: Union[pd.DataFrame, SparkDataFrame]) -> None:
+        """Compute normalization statistics from training data."""
+    @abstractmethod
+    def transform(self, df: Union[pd.DataFrame, SparkDataFrame]) -> Union[pd.DataFrame, SparkDataFrame]:
+        """Apply normalization to DataFrame."""
+
+
+class Sampler(ABC):
+    """Abstract base class for data sampling."""
+    
+    @abstractmethod
+    def _file_exists(self, path: str) -> bool:
+        """Check if sample file exists"""
+
+    @abstractmethod
+    def _load_sample(self, path: str) -> Union[pd.DataFrame, SparkDataFrame]:
+        """Load sample data from storage"""
+
+    @abstractmethod
+    def _takesample(self, features: Union[pd.DataFrame, SparkDataFrame], 
+                   similarity: Optional[Union[pd.DataFrame, SparkDataFrame]]) -> None:
+        """placeholder"""
+
+    @abstractmethod
+    def _savesample(self) -> None:
+        """Save generated samples to storage"""
+        
+    @abstractmethod
+    def transform(self, 
+                 features: Union[pd.DataFrame, SparkDataFrame],
+                 similarity: Optional[Union[pd.DataFrame, SparkDataFrame]]) -> Tuple[Union[pd.DataFrame, SparkDataFrame], Optional[Union[pd.DataFrame, SparkDataFrame]]]:
+        """Main interface for sampling workflow"""
+
 
 class ComponentFactory(ABC):
     """Abstract factory interface for system component creation."""
@@ -147,4 +210,31 @@ class ComponentFactory(ABC):
         Args:
             data_src: Input data source(s)
             kwargs: Loader-specific configuration
+        """
+        
+    @abstractmethod
+    def create_sampler(self, data_src: Any, **kwargs) -> Sampler:
+        """
+        Configure data sampler pipeline
+        
+        Args:
+            data_src: Input data source(s)
+            kwargs: sampler-specific configuration
+        """
+            
+    @abstractmethod
+    def create_normalizer(self, **kwargs) -> Normalizer:
+        """
+        Configure data normalizer pipeline
+        
+        Args:
+            kwargs: normalizer-specific configuration
+        """
+    @abstractmethod
+    def create_visualizer(self, plots_path: str) -> DataVis:
+         """
+        Configure data visualizer pipeline
+        
+        Args:
+            plots_path: Path to save data visualisation
         """

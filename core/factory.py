@@ -1,12 +1,13 @@
 # Файл: core/factory.py
 from typing import Any, Union, Optional, List, Dict
 from pyspark.sql import SparkSession
-from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer
+from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer, Normalizer, Sampler, DataVis
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
 from optimization.strategies import GridSearch, RandomSearch, TPESearch
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
+from visualization.vis import Visualizer
 
 from models import *
 from metrics import *
@@ -54,8 +55,8 @@ class DefaultFactory(ComponentFactory):
         }
         return strategies[identifier](**kwargs)
     
-    def create_sampler(self, data_src: Union[str, List[str]], spark: SparkSession = None) -> Optional['Sampler']:
-        """Create sampler"""
+    def create_sampler(self, data_src: Union[str, List[str]], spark: SparkSession = None) -> Sampler:
+        """Create sampler."""
         if isinstance(spark, SparkSession):
             return SparkSampler(data_src = data_src, spark = spark)
         else:
@@ -65,13 +66,19 @@ class DefaultFactory(ComponentFactory):
                           method: Optional[str] = None, 
                           columns: Optional[List[str]] = None, 
                           methods: Optional[Dict[str, str]] = None, 
-                          spark: SparkSession = None) -> Optional['Normalizer']:
-        """Create normalizer"""
+                          spark: SparkSession = None) -> Normalizer:
+        """Create normalizer."""
         if isinstance(spark, SparkSession):
             return SparkNormalizer(method = method, columns = columns, methods = methods, spark = spark)
         else:
             return PandasNormalizer(method = method, columns = columns, methods = methods)
-    
+
+    def create_visualizer(self, plots_path: str) -> DataVis:
+        """Create visualizer."""
+        if isinstance(plots_path, str):
+            visualizer = Visualizer(plots_path)
+            return visualizer
+
     def create_loader(self,
                      data_src: Union[str, list, tuple],
                      normalizer: Optional[Union[SparkNormalizer, PandasNormalizer, str]] = None,

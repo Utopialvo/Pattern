@@ -4,10 +4,13 @@
 
 ## Description
 
-A modular toolkit for unsupervised learning tasks with:
+Unsupervised learning library:
 - Pandas & Apache Spark integration
 - Extensible architecture for algorithms/metrics
-- Hyperparameter optimization framework
+- Hyperparameter optimization with optuna
+- Extensible Metrics
+- Visualization for interpretation result
+- Statistic interpretation result
 
 ## Features
 
@@ -16,6 +19,7 @@ A modular toolkit for unsupervised learning tasks with:
 - **Optimization**: Grid Search, Random Search, Tree-structured Parzen Estimator algorithm
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
 - **Serialization**: Joblib model persist
+- **Visualization**: Graph and Features plots
 
 ## Requirements
 
@@ -72,6 +76,7 @@ Pattern/
 ├── preprocessing/     # Normalizers/Samplers
 ├── config/            # Configuration validation
 ├── cli/               # Command line interface
+├── visualization/     # Result modeling visualization
 ├── main.py            # Entry point
 ├── README.md          # Project documentation
 ├── config.json        # Example configuration
@@ -86,6 +91,7 @@ Pattern/
 {
   "data_source": "pandas",
   "optimizer": "tpe",
+  "plots_path":"results/datavis/kmeans",
   "preprocessing": {
     "normalizer": {
       "methods": {

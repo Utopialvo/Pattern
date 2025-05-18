@@ -1,12 +1,12 @@
 # Файл: preprocessing/samplers.py
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Union, List, Optional, Tuple
 import pandas as pd
+from core.interfaces import Sampler
 from pyspark.sql import SparkSession, DataFrame as SparkDF
 import os
 
-
-class BaseSampler(ABC):
+class BaseSampler(Sampler):
     """Base class for data sampling strategies.
     
     Attributes:

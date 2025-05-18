@@ -1,10 +1,11 @@
 {
   "data_source": "pandas",
+  "plots_path": "results/datavis/DMON",
   "optimizer": "grid",
   "preprocessing": {},
   "data_path": [
-    "cora.parquet",
-    "cora_graph.parquet"
+    "data.parquet",
+    "data_graph.parquet"
   ],
   "algorithm": "dmon",
   "params": {
@@ -34,5 +35,5 @@
     ]
   },
   "metric": "attribute-graph",
-  "output_path": "best_dmon.joblib"
+  "output_path": "best_dmon.pt"
 }

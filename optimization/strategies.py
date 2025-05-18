@@ -82,7 +82,8 @@ class BaseOptimizer(Optimizer):
             try:
                 model = model_class(params)
                 model.fit(data_loader)
-                labels = model.predict(data_loader)
+                # labels = model.predict(data_loader)
+                labels = model.labels_
                 score = metric.calculate(data_loader, labels, model.model_data)
                 return score
             except Exception as e:

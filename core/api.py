@@ -18,6 +18,7 @@ def train_pipeline(
     sampler: Optional[Union[dict, str]] = None,
     metric: str = 'silhouette',
     optimizer: str = 'grid',
+    plots_path: str = None,
     custom_factory: Optional[ComponentFactory] = None,
     spark: Optional[SparkSession] = None,
     **kwargs
@@ -98,14 +99,24 @@ def train_pipeline(
     # Optimization process
     optimizer = used_factory.create_optimizer(optimizer)
     metric = used_factory.create_metric(metric)
+    
+    print('Start find best params...')
     best_params = optimizer.find_best(
         model_class=model_class,
         data_loader=data_loader,
         param_grid=param_grid,
         metric=metric
     )
+    print(f"Optimal parameters: {best_params}")
     
     # Final model training
     best_model = used_factory.create_model(algorithm, best_params)
     best_model.fit(data_loader=data_loader)
+    
+    print(f"Final train best params")
+
+    if isinstance(plots_path, str):
+        visualizer = factory.create_visualizer(plots_path)
+        visualizer.visualisation(data_loader, best_model.labels_)
+    
     return best_model

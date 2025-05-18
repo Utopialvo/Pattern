@@ -104,7 +104,7 @@ class DMoN(ClusterModel):
     def __init__(self, params: Dict[str, Any]):
         self.params = params
         self.model = None
-        self.labels = None
+        self.labels_ = None
 
     def fit(self, data_loader):
         features, adj_matrix = data_loader.full_data()
@@ -113,10 +113,10 @@ class DMoN(ClusterModel):
         features_tensor = torch.FloatTensor(features.values).to(self.device)
         adj_tensor = torch.FloatTensor(adj_matrix.values).to(self.device)
         edge_index, edge_attr = dense_to_sparse(adj_tensor)
-
+        self.params['input_dim'] = features.shape[1]
         
         self.model = DMoN_DPR(
-            input_dim=features.shape[1],
+            input_dim=self.params.get('input_dim'),
             num_clusters=self.params.get('num_clusters'),
             hidden_dim=self.params.get('hidden_dim', 256),
             lambda_=self.params.get('lambda_', {'modularity': 1.0, 'collapse': 1.0, 
@@ -149,26 +149,42 @@ class DMoN(ClusterModel):
         self.model.eval()
         with torch.no_grad():
             c = self.model(features_tensor, edge_index, edge_attr)
-            self.labels = c.argmax(dim=1).cpu().numpy()
+            self.labels_ = c.argmax(dim=1).cpu().numpy()
+            
+        del features_tensor, adj_tensor, edge_index, edge_attr, features, adj_matrix
+        return None
 
     def predict(self, data_loader):
-        return self.labels
+        features, adj_matrix = data_loader.full_data()
+        features_tensor = torch.FloatTensor(features.values).to(self.device)
+        adj_tensor = torch.FloatTensor(adj_matrix.values).to(self.device)
+        edge_index, edge_attr = dense_to_sparse(adj_tensor)
+        
+        self.model.eval()
+        with torch.no_grad():
+            c = self.model(features_tensor, edge_index, edge_attr)
+            preds = c.argmax(dim=1).cpu().numpy()
+        return preds
 
     def save(self, path: str) -> None:
         torch.save({
             'model_state': self.model.state_dict(),
             'params': self.params,
-            'device':self.device,
-            'labels': self.labels
-        }, path)
+            'labels': self.labels_
+        }, path, _use_new_zipfile_serialization=True, pickle_protocol=4)
 
     @classmethod
     def load(cls, path: str) -> 'DMoN':
         data = torch.load(path, map_location=torch.device('cpu'))
+        
         model = cls(data['params'])
+        model.model = DMoN_DPR(**data['params'])
+        
+        model.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         model.model.load_state_dict(data['model_state'])
-        model.model.to(data['device'])
-        model.labels = data['labels']
+        model.model.to(model.device)
+        
+        model.labels_ = data['labels']
         return model
 
     @property

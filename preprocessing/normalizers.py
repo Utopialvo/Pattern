@@ -1,10 +1,12 @@
 # Файл: preprocessing/normalizers.py
 from pyspark.sql import functions as F, DataFrame as SparkDF
 from typing import Union, Dict, List, Optional
+from abc import abstractmethod
+from core.interfaces import Normalizer
 import joblib
 import pandas as pd
 
-class BaseNormalizer:
+class BaseNormalizer(Normalizer):
     """Base class for data normalization across frameworks."""
     
     VALID_METHODS = ['minmax', 'zscore', 'range']
@@ -63,7 +65,18 @@ class BaseNormalizer:
         self.methods = data['methods']
         self.stats = data['stats']
         self.columns = data['columns']
+        
+    @abstractmethod
+    def fit(self, df: Union[pd.DataFrame, SparkDF]) -> 'BaseNormalizer':
+        """Compute normalization statistics from training data."""
+        pass
+        
+    @abstractmethod
+    def transform(self, df: Union[pd.DataFrame, SparkDF]) -> Union[pd.DataFrame, SparkDF]:
+        """Apply normalization to DataFrame."""
+        pass
 
+        
 class SparkNormalizer(BaseNormalizer):
     """PySpark DataFrame normalization implementation."""
     
