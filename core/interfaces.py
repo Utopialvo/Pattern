@@ -118,7 +118,7 @@ class DataVis(ABC):
     def visualisation(self,
                   data_loader: DataLoader,
                   labels: Union[pd.Series, pd.DataFrame, SparkDataFrame], 
-                  model_data: dict) -> float:
+                  model_data: dict) -> None:
         """
         Create visualisation for clustering results
         
@@ -130,7 +130,24 @@ class DataVis(ABC):
         Returns:
             Save clustering visualisation
         """
+
+class DataStatistics(ABC):
+    """Abstract base class for clustering visualisation."""
+    
+    @abstractmethod
+    def compute_statistics(self,
+                  data_loader: DataLoader,
+                  labels: Union[pd.Series, pd.DataFrame, SparkDataFrame], 
+                  alpha: float = 0.05) -> None:
+        """
+        Compute and save statistics clustering
         
+        Args:
+            data_loader: Source of input data
+            labels: Predicted cluster assignments
+            alpha: significant level
+        """
+
 class Normalizer(ABC):
     """Abstract base class for data normalization."""
     
@@ -237,4 +254,13 @@ class ComponentFactory(ABC):
         
         Args:
             plots_path: Path to save data visualisation
+        """
+        
+    @abstractmethod
+    def create_analyser(self, stat_path: str) -> DataStatistics:
+         """
+        Configure data analyser pipeline
+        
+        Args:
+            stat_path: Path to save report
         """

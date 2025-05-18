@@ -1,13 +1,14 @@
 # Файл: core/factory.py
 from typing import Any, Union, Optional, List, Dict
 from pyspark.sql import SparkSession
-from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer, Normalizer, Sampler, DataVis
+from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer, Normalizer, Sampler, DataVis, DataStatistics
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
 from optimization.strategies import GridSearch, RandomSearch, TPESearch
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
 from visualization.vis import Visualizer
+from stats.stat import Statistics
 
 from models import *
 from metrics import *
@@ -78,6 +79,12 @@ class DefaultFactory(ComponentFactory):
         if isinstance(plots_path, str):
             visualizer = Visualizer(plots_path)
             return visualizer
+
+    def create_analyser(self, stat_path: str) -> DataStatistics:
+        """Create analyser."""
+        if isinstance(stat_path, str):
+            analyser = Statistics(stat_path)
+            return analyser
 
     def create_loader(self,
                      data_src: Union[str, list, tuple],

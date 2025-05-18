@@ -9,6 +9,7 @@ from preprocessing.samplers import SparkSampler, PandasSampler
 from core.factory import factory
 import pandas as pd
 
+
 def train_pipeline(
     features_src: Union[str, pd.DataFrame],
     similarity_src: Optional[Union[str, pd.DataFrame]] = None,
@@ -19,16 +20,12 @@ def train_pipeline(
     metric: str = 'silhouette',
     optimizer: str = 'grid',
     plots_path: str = None,
+    stat_path: str = None,
     custom_factory: Optional[ComponentFactory] = None,
     spark: Optional[SparkSession] = None,
     **kwargs
 ) -> ClusterModel:
     """Universal training pipeline for clustering models.
-    
-    Combines key stages:
-    1. Data loading and preparation
-    2. Hyperparameter optimization
-    3. Final model training
     
     Args:
         features_src: Primary data source (path or DataFrame)
@@ -39,22 +36,10 @@ def train_pipeline(
         sampler: Sampler configuration (path/object/dict) (optional)
         metric: Optimization metric identifier (default: 'silhouette')
         optimizer: Search strategy ('grid' or 'random') (default: 'grid')
+        plots_path: Path to save plosts (path/str) (optional)
+        stat_path: Path to save report (path/str) (optional)
         custom_factory: Alternative component factory (optional)
         spark: Spark session for distributed processing (optional)
-        
-    Returns:
-        Trained model with optimized parameters
-        
-    Raises:
-        ValueError: For invalid parameters or configurations
-        TypeError: For incorrect parameter types
-        
-    Example:
-        >>> model = train_pipeline(
-        >>>     features_src="data.csv",
-        >>>     algorithm="dbscan",
-        >>>     param_grid={"eps": [0.3, 0.5]}
-        >>> )
     """
     # Configuration setup
     used_factory = custom_factory or factory
@@ -112,11 +97,16 @@ def train_pipeline(
     # Final model training
     best_model = used_factory.create_model(algorithm, best_params)
     best_model.fit(data_loader=data_loader)
-    
     print(f"Final train best params")
 
     if isinstance(plots_path, str):
+        print(f"Visualizing")
         visualizer = factory.create_visualizer(plots_path)
         visualizer.visualisation(data_loader, best_model.labels_)
+
+    if isinstance(stat_path, str):
+        print(f"Analizing")
+        analyser = factory.create_analyser(stat_path)
+        analyser.compute_statistics(data_loader, best_model.labels_)
     
     return best_model

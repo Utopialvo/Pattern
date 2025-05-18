@@ -26,14 +26,17 @@ Unsupervised learning library:
 - Python 3.11.10
 - PySpark 3.3.1+ (optional for Spark mode)
 - Core Dependencies:
-  - scikit-learn
-  - pandas
-  - numpy
-  - joblib
-  - optuna
-  - torch
-  - networkx
-  - torch_geometric
+  - scikit-learn=1.6.1
+  - pandas=2.0.3
+  - numpy=2.2.6
+  - joblib=1.4.2
+  - optuna=4.3.0
+  - torch=2.7.0+cpu
+  - networkx=3.4.1
+  - torch_geometric=2.6.1
+  - seaborn=0.13.2
+  - matplotlib=3.10.3
+
 
 ## Installation
 
@@ -77,6 +80,7 @@ Pattern/
 ├── config/            # Configuration validation
 ├── cli/               # Command line interface
 ├── visualization/     # Result modeling visualization
+├── stats/             # Cluster statistical analysis
 ├── main.py            # Entry point
 ├── README.md          # Project documentation
 ├── config.json        # Example configuration
@@ -92,6 +96,7 @@ Pattern/
   "data_source": "pandas",
   "optimizer": "tpe",
   "plots_path":"results/datavis/kmeans",
+  "stat_path":"results/stat/kmeans",
   "preprocessing": {
     "normalizer": {
       "methods": {

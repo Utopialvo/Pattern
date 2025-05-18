@@ -1,6 +1,7 @@
 {
   "data_source": "pandas",
   "plots_path": "results/datavis/DMON",
+  "stat_path": "results/stat/DMON",
   "optimizer": "grid",
   "preprocessing": {},
   "data_path": [
@@ -10,7 +11,9 @@
   "algorithm": "dmon",
   "params": {
     "num_clusters": [
-      7
+      3,
+      4,
+      5
     ],
     "hidden_dim": [
       256

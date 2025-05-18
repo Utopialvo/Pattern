@@ -1,4 +1,4 @@
-# Файл: models/sklearn_cluster.py
+# Файл: models/network.py
 import networkx as nx
 import numpy as np
 import joblib

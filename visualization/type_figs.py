@@ -145,7 +145,7 @@ class GraphVisualizer(BaseVisualizer):
         boundaries = np.concatenate([[0], boundaries, [len(labels)]])
         
         unique_clusters = np.unique(sorted_labels)
-        cmap = matplotlib.colormaps['tab20'].resampled(len(unique_labels))
+        cmap = matplotlib.colormaps['tab20'].resampled(len(unique_clusters))
         
         for i, (start, end) in enumerate(zip(boundaries[:-1], boundaries[1:])):
             cluster_color = cmap(i)

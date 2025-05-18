@@ -104,7 +104,11 @@ def main():
     if plots_path := config.get('plots_path'):
         visualizer = factory.create_visualizer(plots_path)
         visualizer.visualisation(data_loader, best_model.labels_)
-
+        
+    # Analysis result model
+    if stat_path := config.get('stat_path'):
+        analyser = factory.create_analyser(stat_path)
+        analyser.compute_statistics(data_loader, best_model.labels_)
 
 if __name__ == "__main__":
     main()
