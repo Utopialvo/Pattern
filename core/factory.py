@@ -1,6 +1,7 @@
 # Файл: core/factory.py
+import pandas as pd
 from typing import Any, Union, Optional, List, Dict
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer, Normalizer, Sampler, DataVis, DataStatistics
 from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
 from data.loaders import PandasDataLoader, SparkDataLoader
@@ -56,12 +57,18 @@ class DefaultFactory(ComponentFactory):
         }
         return strategies[identifier](**kwargs)
     
-    def create_sampler(self, data_src: Union[str, List[str]], spark: SparkSession = None) -> Sampler:
+    def create_sampler(self,
+                    features: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None,
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None,  
+                    spark: SparkSession = None) -> Sampler:
         """Create sampler."""
         if isinstance(spark, SparkSession):
-            return SparkSampler(data_src = data_src, spark = spark)
+            return SparkSampler(features = features, 
+                                similarity=similarity, 
+                                spark = spark)
         else:
-            return PandasSampler(data_src = data_src)
+            return PandasSampler(features = features, 
+                                similarity=similarity)
 
     def create_normalizer(self, 
                           method: Optional[str] = None, 
@@ -87,7 +94,8 @@ class DefaultFactory(ComponentFactory):
             return analyser
 
     def create_loader(self,
-                     data_src: Union[str, list, tuple],
+                     features: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None, 
+                     similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None,
                      normalizer: Optional[Union[SparkNormalizer, PandasNormalizer, str]] = None,
                      sampler: Optional[Union[SparkSampler, PandasSampler, str]] = None,
                      spark: Optional[SparkSession] = None,
@@ -95,7 +103,8 @@ class DefaultFactory(ComponentFactory):
         """Create appropriate data loader with normalization.
         
         Args:
-            data_src: Data source(s) - path(s) or DataFrame(s)
+            features: Input data features source(s)
+            similarity: Input data similarity source(s)
             normalizer: Normalizer instance/config path (optional)
             sampler: Data sampling component (optional)
             spark: Spark session for distributed processing (optional)
@@ -111,10 +120,9 @@ class DefaultFactory(ComponentFactory):
                 normalizer = PandasNormalizer.load(normalizer)
             
         loader_cls = SparkDataLoader if spark else PandasDataLoader
-        data_src = [data_src] if isinstance(data_src, str) else data_src
-            
         return loader_cls(
-            data_src=data_src,
+            features=features,
+            similarity=similarity,
             normalizer=normalizer,
             sampler=sampler,
             spark=spark,

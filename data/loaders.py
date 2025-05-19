@@ -11,22 +11,25 @@ class BaseDataLoader(DataLoader):
     """Base data loader implementing common functionality."""
     
     def __init__(self, 
-                 data_src: Union[str, list, tuple, pd.DataFrame, SparkDataFrame],
+                 features: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None, 
+                 similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]] = None,
                  normalizer: Optional[Any] = None,
                  sampler: Optional[Any] = None,
                  **kwargs):
         self.normalizer = normalizer
         self.sampler = sampler
-        self._load(data_src)
+        self.features = None
+        self.similarity_matrix = None
+        self._load(features, similarity)
 
-    def _load(self, data_src: Union[str, list, tuple, pd.DataFrame, SparkDataFrame]) -> None:
+    def _load(self, 
+                features: Optional[Union[str, pd.DataFrame, SparkDataFrame]], 
+                similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]]) -> None:
         """Load and preprocess data from source(s)."""
-        if isinstance(data_src, list) and len(data_src) > 2:
-            raise ValueError("Maximum 2 data sources supported")
-
-        sources = data_src if isinstance(data_src, list) else [data_src]
-        self.features = self._load_source(sources[0]) if len(sources) >= 1 else None
-        self.similarity_matrix = self._load_source(sources[1]) if len(sources) >= 2 else None
+        if not isinstance(features, type(None)):
+            self.features = self._load_source(features)
+        if not isinstance(similarity, type(None)):
+            self.similarity_matrix = self._load_source(similarity)
 
         if self.sampler:
             self.features, self.similarity_matrix = self.sampler.transform(
@@ -35,7 +38,8 @@ class BaseDataLoader(DataLoader):
 
         if self.normalizer and self.features is not None:
             self.normalizer.fit(self.features)
-            self.normalizer.save(f"{sources[0].split('.')[0]}.normstats.joblib")
+            if isinstance(features, str):
+                self.normalizer.save(f"{features.split('.')[0]}.normstats.joblib")
             self.features = self.normalizer.transform(self.features)
 
         self.similarity_matrix = transform_edgelist(self.similarity_matrix)

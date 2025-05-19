@@ -1,42 +1,45 @@
 {
   "data_source": "pandas",
-  "plots_path": "results/datavis/DMON",
-  "stat_path": "results/stat/DMON",
-  "optimizer": "grid",
-  "preprocessing": {},
-  "data_path": [
-    "data.parquet",
-    "data_graph.parquet"
-  ],
-  "algorithm": "dmon",
+  "optimizer": "tpe",
+  "plots_path": "results/datavis/kmeans",
+  "stat_path": "results/stat/kmeans",
+  "preprocessing": {
+    "normalizer": {
+      "methods": {
+        "x1": "zscore",
+        "x2": "range",
+        "x3": "minmax"
+      },
+      "columns": [
+        "x1",
+        "x2",
+        "x3"
+      ]
+    },
+    "sampler": {
+      "features": "data.parquet",
+      "similarity": null
+    }
+  },
+  "features": "data.parquet",
+  "similarity": null,
+  "algorithm": "kmeans",
   "params": {
-    "num_clusters": [
+    "n_clusters": [
       3,
-      4,
-      5
+      5,
+      7,
+      10
     ],
-    "hidden_dim": [
-      256
+    "init": [
+      "k-means++",
+      "random"
     ],
-    "lambda_": [
-      {
-        "modularity": 1.0,
-        "collapse": 1.0,
-        "distance": 0.0,
-        "variance": 0.0,
-        "entropy": 0.0
-      }
-    ],
-    "epochs": [
-      500
-    ],
-    "lr": [
-      0.0001
-    ],
-    "dropout": [
-      0.5
+    "max_iter": [
+      100,
+      200
     ]
   },
-  "metric": "attribute-graph",
-  "output_path": "best_dmon.pt"
+  "metric": "attribute",
+  "output_path": "best_kmeans.joblib"
 }

@@ -15,7 +15,7 @@ Unsupervised learning library:
 ## Features
 
 - **Algorithms**: KMeans, DBSCAN, Louvain, Spectral, Deep Modularity Network (DMoN)
-- **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density_modularity
+- **Metrics**: WB, SW, Calinski-Harabasz, ANUI, AVU, AVI, modularity, density modularity
 - **Optimization**: Grid Search, Random Search, Tree-structured Parzen Estimator algorithm
 - **Data Formats**: Parquet, CSV, ORC (Pandas/Spark compatible)
 - **Serialization**: Joblib model persist
@@ -26,16 +26,20 @@ Unsupervised learning library:
 - Python 3.11.10
 - PySpark 3.3.1+ (optional for Spark mode)
 - Core Dependencies:
-  - scikit-learn=1.6.1
-  - pandas=2.0.3
-  - numpy=2.2.6
-  - joblib=1.4.2
-  - optuna=4.3.0
-  - torch=2.7.0+cpu
-  - networkx=3.4.1
-  - torch_geometric=2.6.1
-  - seaborn=0.13.2
-  - matplotlib=3.10.3
+    - joblib==1.4.2
+    - matplotlib==3.10.3
+    - networkx==3.4.1
+    - numpy==2.2.6
+    - optuna==4.3.0
+    - pandas==2.0.3
+    - pyspark.egg==info
+    - scikit_learn==1.6.1
+    - scipy==1.15.3
+    - seaborn==0.13.2
+    - statsmodels==0.14.4
+    - torch==2.7.0+cpu
+    - torch_geometric==2.6.1
+    - tqdm==4.66.5
 
 
 ## Installation
@@ -95,8 +99,8 @@ Pattern/
 {
   "data_source": "pandas",
   "optimizer": "tpe",
-  "plots_path":"results/datavis/kmeans",
-  "stat_path":"results/stat/kmeans",
+  "plots_path": "results/datavis/kmeans",
+  "stat_path": "results/stat/kmeans",
   "preprocessing": {
     "normalizer": {
       "methods": {
@@ -111,16 +115,12 @@ Pattern/
       ]
     },
     "sampler": {
-      "data_src": [
-        "data.parquet",
-        null
-      ]
+      "features": "data.parquet",
+      "similarity": null
     }
   },
-  "data_path": [
-    "data.parquet",
-    null
-  ],
+  "features": "data.parquet",
+  "similarity": null,
   "algorithm": "kmeans",
   "params": {
     "n_clusters": [

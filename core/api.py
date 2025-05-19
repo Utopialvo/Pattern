@@ -10,8 +10,8 @@ from core.factory import factory
 import pandas as pd
 
 
-def train_pipeline(
-    features_src: Union[str, pd.DataFrame],
+def optimizing_pipeline(
+    features_src: Union[str, pd.DataFrame] = None,
     similarity_src: Optional[Union[str, pd.DataFrame]] = None,
     algorithm: str = 'kmeans',
     param_grid: Optional[Dict[str, list[Any]]] = None,
@@ -25,7 +25,7 @@ def train_pipeline(
     spark: Optional[SparkSession] = None,
     **kwargs
 ) -> ClusterModel:
-    """Universal training pipeline for clustering models.
+    """Universal optimizing pipeline for clustering models.
     
     Args:
         features_src: Primary data source (path or DataFrame)
@@ -44,7 +44,6 @@ def train_pipeline(
     # Configuration setup
     used_factory = custom_factory or factory
     param_grid = param_grid or {}
-    data_sources = [features_src] + ([similarity_src] if similarity_src else [])
 
     # Normalizer initialization
     if isinstance(normalizer, str):
@@ -74,7 +73,8 @@ def train_pipeline(
     # Component initialization
     model_class = MODEL_REGISTRY[algorithm]['class']
     data_loader = used_factory.create_loader(
-        data_src = data_sources,
+        features = features_src, 
+        similarity = similarity_src,
         normalizer = normalizer,
         sampler = sampler,
         spark = spark,
@@ -100,13 +100,13 @@ def train_pipeline(
     print(f"Final train best params")
 
     if isinstance(plots_path, str):
-        print(f"Visualizing")
         visualizer = factory.create_visualizer(plots_path)
+        print(f"Visualizing")
         visualizer.visualisation(data_loader, best_model.labels_)
 
     if isinstance(stat_path, str):
-        print(f"Analizing")
         analyser = factory.create_analyser(stat_path)
+        print(f"Analizing")
         analyser.compute_statistics(data_loader, best_model.labels_)
     
     return best_model

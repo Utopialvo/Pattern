@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame as SparkDF
 from sklearn.metrics import silhouette_score
 from core.interfaces import Metric
 from config.registries import register_metric
-from metrics.clustering_metrics import FuturesClusteringMetrics, FuturesClusteringMetricsSpark, AdjacencyClusteringMetrics, AdjacencyClusteringMetricsSpark
+from metrics.clustering_metrics import FeaturesClusteringMetrics, FeaturesClusteringMetricsSpark, AdjacencyClusteringMetrics, AdjacencyClusteringMetricsSpark
 
 def _is_spark(obj) -> bool:
     """If object is Spark DataFrame?"""
@@ -24,10 +24,10 @@ class AttributeMetric(Metric):
             return np.nan
             
         if _is_spark(data_loader.features):
-            calculator = FuturesClusteringMetricsSpark()
+            calculator = FeaturesClusteringMetricsSpark()
             features = data_loader.features
         else:
-            calculator = FuturesClusteringMetrics()
+            calculator = FeaturesClusteringMetrics()
             features = data_loader.features.values
         
         centroids = model_data.get('centroids', None)

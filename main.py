@@ -66,18 +66,19 @@ def main():
     
     # Configure data processing components
     if sampler := config.get('preprocessing').get('sampler'):
-        sampler = factory.create_sampler(spark = spark, **sampler)
+        sampler = factory.create_sampler(spark = spark,
+                                        **sampler)
     if normalizer := config.get('preprocessing').get('normalizer'):
         normalizer = factory.create_normalizer(spark = spark, **normalizer)
 
     # Initialize core components
     model_class = MODEL_REGISTRY[config['algorithm']]['class']
     data_loader = factory.create_loader(
-        config['data_path'],
+        features=config.get('features'),
+        similarity=config.get('similarity'),
         spark=spark,
         normalizer = normalizer,
-        sampler = sampler
-    )
+        sampler = sampler)
     
     # Execute optimization pipeline
     optimizer = factory.create_optimizer(config.get('optimizer', 'grid'))

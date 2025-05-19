@@ -15,8 +15,10 @@ class BaseSampler(Sampler):
         similarity_sample (Optional[Union[pd.DataFrame, SparkDF]]): Sampled similarity matrix.
     """
     
-    def __init__(self, data_src: Union[str, List[str]]):
-        self.data_src = data_src
+    def __init__(self, 
+                    features: Optional[Union[str, pd.DataFrame, SparkDF]], 
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDF]]):
+        self.data_src = [features, similarity]
         self.features_sample = None
         self.similarity_sample = None
         self._load()
@@ -84,8 +86,10 @@ class BaseSampler(Sampler):
 class PandasSampler(BaseSampler):
     """Sampling implementation for Pandas DataFrames"""
     
-    def __init__(self, data_src: Union[str, List[str]]):
-        super().__init__(data_src)
+    def __init__(self, 
+                    features: Optional[Union[str, pd.DataFrame, SparkDF]], 
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDF]]):
+        super().__init__(features, similarity)
     
     def _file_exists(self, path: str) -> bool:
         return os.path.exists(path)
@@ -124,10 +128,11 @@ class PandasSampler(BaseSampler):
 
 class SparkSampler(BaseSampler):
     """Sampling implementation for Spark DataFrames"""
-    
-    def __init__(self, data_src: Union[str, List[str]], spark: SparkSession):
+    def __init__(self, 
+                    features: Optional[Union[str, pd.DataFrame, SparkDF]], 
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDF]], spark: SparkSession):
         self.spark = spark
-        super().__init__(data_src)
+        super().__init__(features, similarity)
 
     def _file_exists(self, path: str) -> bool:
         try:

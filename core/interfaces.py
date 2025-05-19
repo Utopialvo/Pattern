@@ -9,15 +9,17 @@ class DataLoader(ABC):
     """Abstract base class for data loading components."""
     
     @abstractmethod
-    def __init__(self, 
-                 data_src: Union[str, list, Tuple],
-                 normalizer: Optional['Normalizer'] = None,
-                 sampler: Optional['Sampler'] = None):
+    def __init__(self,
+                features: Optional[Union[str, pd.DataFrame, SparkDataFrame]], 
+                similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]],
+                normalizer: Optional['Normalizer'] = None,
+                sampler: Optional['Sampler'] = None):
         """
         Initialize data loader with source and processing components
         
         Args:
-            data_src: Data source(s) - path(s) or DataFrame(s)
+            features: Input data features source(s)
+            similarity: Input data similarity source(s)
             normalizer: Optional data normalization component
             sampler: Optional data sampling component
         """
@@ -177,8 +179,9 @@ class Sampler(ABC):
         """Load sample data from storage"""
 
     @abstractmethod
-    def _takesample(self, features: Union[pd.DataFrame, SparkDataFrame], 
-                   similarity: Optional[Union[pd.DataFrame, SparkDataFrame]]) -> None:
+    def _takesample(self, 
+                    features: Union[pd.DataFrame, SparkDataFrame], 
+                    similarity: Optional[Union[pd.DataFrame, SparkDataFrame]]) -> None:
         """placeholder"""
 
     @abstractmethod
@@ -220,22 +223,28 @@ class ComponentFactory(ABC):
         """
     
     @abstractmethod
-    def create_loader(self, data_src: Any, **kwargs) -> DataLoader:
+    def create_loader(self, 
+                    features: Optional[Union[str, pd.DataFrame, SparkDataFrame]], 
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]], **kwargs) -> DataLoader:
         """
         Configure data loading pipeline
         
         Args:
-            data_src: Input data source(s)
+            features: Input data features source(s)
+            similarity: Input data similarity source(s)
             kwargs: Loader-specific configuration
         """
         
     @abstractmethod
-    def create_sampler(self, data_src: Any, **kwargs) -> Sampler:
+    def create_sampler(self,
+                    features: Optional[Union[str, pd.DataFrame, SparkDataFrame]], 
+                    similarity: Optional[Union[str, pd.DataFrame, SparkDataFrame]], **kwargs) -> Sampler:
         """
         Configure data sampler pipeline
         
         Args:
-            data_src: Input data source(s)
+            features: Input data features source(s)
+            similarity: Input data similarity source(s)
             kwargs: sampler-specific configuration
         """
             

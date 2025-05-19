@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from typing import Dict, Optional
 
-class FuturesClusteringMetrics:
+class FeaturesClusteringMetrics:
     """A class to compute feature-based clustering metrics.
     
     Metrics include:
@@ -48,10 +48,10 @@ class FuturesClusteringMetrics:
         
         return {'WB': wb, 'SW': sw, 'CH': ch}
         
-class FuturesClusteringMetricsSpark:
+class FeaturesClusteringMetricsSpark:
     """to do"""
     def get_metrics(self, features, clustering, centroids=None) -> Dict[str, float]:
-        raise NotImplementedError("Spark version of FuturesClusteringMetrics is not implemented yet")
+        raise NotImplementedError("Spark version of FeaturesClusteringMetrics is not implemented yet")
 
 
 class AdjacencyClusteringMetrics:
@@ -66,11 +66,11 @@ class AdjacencyClusteringMetrics:
             
         Returns:
             dict: Dictionary containing:
-                - 'ANUI' (float): Adjusted Normalized Uniformity Isolability
-                - 'AVU' (float): Average Volume Uniformity
-                - 'AVI' (float): Average Volume Isolability
-                - 'modularity' (float): Standard graph modularity
-                - 'density_modularity' (float): Density modularity
+                - 'ANUI' (float)
+                - 'AVU' (float)
+                - 'AVI' (float)
+                - 'modularity' (float)
+                - 'density modularity' (float)
         """
         clusters = np.unique(clustering)
         k = len(clusters)
@@ -91,7 +91,7 @@ class AdjacencyClusteringMetrics:
         sum_degrees = [degrees[mask].sum() for mask in mask_list]
         community_sizes = [mask.sum() for mask in mask_list]
         
-        # Calculate Average Volume Uniformity (AVU)
+        # Calculate AVU
         avu = 0.0
         for i in range(k):
             sum_i_out = S[i].sum() - S[i, i]
@@ -106,7 +106,7 @@ class AdjacencyClusteringMetrics:
                 sum_u_i += contrib
             avu += sum_u_i / k
         
-        # Calculate Average Volume Isolability (AVI)
+        # Calculate AVI
         avi = 0.0
         for i in range(k):
             total = S[i].sum()
