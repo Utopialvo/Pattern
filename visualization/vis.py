@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from core.interfaces import DataVis, DataLoader
 from visualization.type_figs import CombinedVisualizer
+from visualization.mirkin_analysis import MirkinAnalysis
 from pyspark.sql import DataFrame as SparkDataFrame
 
 
@@ -31,6 +32,10 @@ class Visualizer(DataVis):
             print('Create radar_chart')
             self.visualizer.violin_plots(data_loader.features, labels)
             print('Create violin_plots')
+            analyzer = MirkinAnalysis(data_loader.features, labels, save_path=self.save_path)
+            analyzer.plot_feature_importance(top_features=5)
+            analyzer.plot_feature_deviation()
+            print('Create Mirkin Analysis plots')
             
         if _is_pandas(data_loader.similarity_matrix):
             self.visualizer.force_directed(data_loader.similarity_matrix.values, labels)
