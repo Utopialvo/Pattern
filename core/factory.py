@@ -10,6 +10,7 @@ from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
 from visualization.vis import Visualizer
 from stats.stat import Statistics
+from pydantic import BaseModel, validator
 
 from models import *
 from metrics import *
