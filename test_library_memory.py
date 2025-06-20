@@ -34,23 +34,17 @@ import time
 import numpy as np
 import pandas as pd
 import networkx as nx
-from sklearn.datasets import make_blobs, make_circles, make_moons, make_classification
+from sklearn.datasets import make_blobs, make_circles, make_moons
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score, calinski_harabasz_score
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-import requests
-import zipfile
-import tarfile
-from urllib.parse import urlparse
-from io import StringIO
+from sklearn.preprocessing import StandardScaler
 
 # Pattern library imports
 try:
     from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
-    from config.validator import load_config
     from core.factory import factory
     from core.logger import logger
     from data.loaders import PandasDataLoader
-    from optimization.strategies import TPESearch, GridSearch, RandomSearch
+    from optimization.strategies import TPESearch
 except ImportError as e:
     print(f"Error importing Pattern library components: {e}")
     sys.exit(1)
@@ -379,6 +373,90 @@ class BenchmarkDataManager:
             return []
         
         return [d.name.lower() for d in self.data_dir.iterdir() if d.is_dir() and d.name not in ['Raw', 'Processed', 'Synthetic', 'Cache']]
+    
+    def load_attribute_dataset(self, dataset_name: str) -> Tuple[Optional[pd.DataFrame], Optional[pd.Series]]:
+        """Load attribute dataset."""
+        try:
+            # For iris dataset, use sklearn
+            if dataset_name == 'iris':
+                from sklearn.datasets import load_iris
+                iris = load_iris()
+                features = pd.DataFrame(iris.data, columns=iris.feature_names)
+                labels = pd.Series(iris.target, name='true_labels')
+                return features, labels
+            
+            # For wine dataset, use sklearn
+            elif dataset_name == 'wine':
+                from sklearn.datasets import load_wine
+                wine = load_wine()
+                features = pd.DataFrame(wine.data, columns=wine.feature_names)
+                labels = pd.Series(wine.target, name='true_labels')
+                return features, labels
+            
+            # For breast cancer dataset, use sklearn
+            elif dataset_name == 'breast_cancer':
+                from sklearn.datasets import load_breast_cancer
+                cancer = load_breast_cancer()
+                features = pd.DataFrame(cancer.data, columns=cancer.feature_names)
+                labels = pd.Series(cancer.target, name='true_labels')
+                return features, labels
+            
+            # For other datasets, try to load from saved files
+            else:
+                features, _, labels, _ = self.load_dataset(dataset_name)
+                return features, labels
+                
+        except Exception as e:
+            logger.error(f"Failed to load attribute dataset {dataset_name}: {e}")
+            return None, None
+    
+    def load_network_dataset(self, dataset_name: str) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], Optional[pd.Series]]:
+        """Load network dataset."""
+        try:
+            # For karate club, use networkx
+            if dataset_name == 'karate':
+                import networkx as nx
+                G = nx.karate_club_graph()
+                adj_matrix = pd.DataFrame(nx.adjacency_matrix(G).toarray())
+                # Create labels based on the known split
+                labels = pd.Series([0 if G.nodes[i]['club'] == 'Mr. Hi' else 1 for i in G.nodes()], name='true_labels')
+                return None, adj_matrix, labels
+            
+            # For other datasets, try to load from saved files
+            else:
+                features, similarity, labels, _ = self.load_dataset(dataset_name)
+                return features, similarity, labels
+                
+        except Exception as e:
+            logger.error(f"Failed to load network dataset {dataset_name}: {e}")
+            return None, None, None
+    
+    def load_attributed_graph_dataset(self, dataset_name: str) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], Optional[pd.Series]]:
+        """Load attributed graph dataset."""
+        try:
+            # For synthetic scenarios, generate them
+            if dataset_name.startswith('synthetic_attr_'):
+                if dataset_name == 'synthetic_attr_easy':
+                    return SyntheticDataGenerator.generate_attributed_graph_data(
+                        n_nodes=300, n_features=15, n_communities=3, p_in=0.4, p_out=0.05
+                    )
+                elif dataset_name == 'synthetic_attr_medium':
+                    return SyntheticDataGenerator.generate_attributed_graph_data(
+                        n_nodes=400, n_features=20, n_communities=4, p_in=0.3, p_out=0.03
+                    )
+                elif dataset_name == 'synthetic_attr_hard':
+                    return SyntheticDataGenerator.generate_attributed_graph_data(
+                        n_nodes=500, n_features=25, n_communities=5, p_in=0.25, p_out=0.02
+                    )
+            
+            # For other datasets, try to load from saved files
+            else:
+                features, similarity, labels, _ = self.load_dataset(dataset_name)
+                return features, similarity, labels
+                
+        except Exception as e:
+            logger.error(f"Failed to load attributed graph dataset {dataset_name}: {e}")
+            return None, None, None
 
 class SyntheticDataGenerator:
     """Generates synthetic datasets for each modality."""
@@ -672,7 +750,7 @@ class AlgorithmTester:
             return 'network'
         
         # Check for attributed graph algorithms
-        if any(keyword in name_lower for keyword in ['dmon', 'gnn', 'graph', 'node2vec']):
+        if any(keyword in name_lower for keyword in ['dmon', 'gnn', 'graph', 'node2vec', 'canus', 'kefrin', 'dgclustering', 'wsnmf']):
             return 'attributed_graph'
         
         # Default to attribute-based
@@ -1020,14 +1098,14 @@ class AlgorithmTester:
         for fmt in formats:
             try:
                 if fmt.lower() == 'csv':
-                    export_path = self.results_dir / "exports" / f"results_{timestamp}.csv"
+                    export_path = self.results_dir / "Exports" / f"Results_{timestamp}.csv"
                     export_path.parent.mkdir(exist_ok=True)
                     df_results.to_csv(export_path, index=False)
                     results[fmt] = True
                     logger.info(f"Results exported to CSV: {export_path}")
                 
                 elif fmt.lower() == 'json':
-                    export_path = self.results_dir / "exports" / f"results_{timestamp}.json"
+                    export_path = self.results_dir / "Exports" / f"Results_{timestamp}.json"
                     export_path.parent.mkdir(exist_ok=True)
                     with open(export_path, 'w') as f:
                         json.dump(self.test_results, f, indent=2, default=str)
@@ -1035,7 +1113,7 @@ class AlgorithmTester:
                     logger.info(f"Results exported to JSON: {export_path}")
                 
                 elif fmt.lower() == 'excel':
-                    export_path = self.results_dir / "exports" / f"results_{timestamp}.xlsx"
+                    export_path = self.results_dir / "Exports" / f"Results_{timestamp}.xlsx"
                     export_path.parent.mkdir(exist_ok=True)
                     
                     with pd.ExcelWriter(export_path, engine='openpyxl') as writer:
@@ -1074,19 +1152,19 @@ class AlgorithmTester:
     
     def list_saved_results(self) -> List[str]:
         """List all saved test result files."""
-        cache_dir = self.results_dir / "cache"
+        cache_dir = self.results_dir / "Cache"
         if not cache_dir.exists():
             return []
         
-        return [f.name for f in cache_dir.glob("test_results_*.json")]
+        return [f.name for f in cache_dir.glob("Test_results_*.json")]
     
     def list_saved_configurations(self) -> List[str]:
         """List all saved configuration files."""
-        cache_dir = self.results_dir / "cache"
+        cache_dir = self.results_dir / "Cache"
         if not cache_dir.exists():
             return []
         
-        return [f.name for f in cache_dir.glob("test_config_*.json")]
+        return [f.name for f in cache_dir.glob("Test_config_*.json")]
     
     def optimize_hyperparameters(self, algorithm_name: str, dataset_name: str,
                                 features: pd.DataFrame, similarity: Optional[pd.DataFrame],
@@ -1417,7 +1495,7 @@ class AlgorithmTester:
             return
         
         # Save detailed results as CSV
-        results_file = self.results_dir / "reports" / f"detailed_results_{timestamp}.csv"
+        results_file = self.results_dir / "Reports" / f"Detailed_results_{timestamp}.csv"
         df_results.to_csv(results_file, index=False)
         
         # Create a summary DataFrame with key metrics
@@ -1457,14 +1535,14 @@ class AlgorithmTester:
             df_summary['nmi_performance'] = df_summary['nmi_vs_expected'].apply(categorize_performance)
         
         # Save summary results
-        summary_file = self.results_dir / "reports" / f"summary_results_{timestamp}.csv"
+        summary_file = self.results_dir / "Reports" / f"Summary_results_{timestamp}.csv"
         df_summary.to_csv(summary_file, index=False)
         
         # Generate comprehensive analysis
         analysis = self._create_comprehensive_analysis(df_results)
         
         # Save analysis as JSON
-        analysis_file = self.results_dir / "reports" / f"analysis_report_{timestamp}.json"
+        analysis_file = self.results_dir / "Reports" / f"Analysis_report_{timestamp}.json"
         with open(analysis_file, 'w') as f:
             json.dump(analysis, f, indent=2, default=str)
         
@@ -1585,7 +1663,7 @@ class AlgorithmTester:
                 columns='dataset', 
                 aggfunc='mean'
             )
-            ari_table_file = self.results_dir / "reports" / f"ari_performance_table_{timestamp}.csv"
+            ari_table_file = self.results_dir / "Reports" / f"ARI_performance_table_{timestamp}.csv"
             pivot_ari.to_csv(ari_table_file)
         
         # Algorithm vs Dataset performance table (NMI)
@@ -1596,7 +1674,7 @@ class AlgorithmTester:
                 columns='dataset', 
                 aggfunc='mean'
             )
-            nmi_table_file = self.results_dir / "reports" / f"nmi_performance_table_{timestamp}.csv"
+            nmi_table_file = self.results_dir / "Reports" / f"NMI_performance_table_{timestamp}.csv"
             pivot_nmi.to_csv(nmi_table_file)
         
         # Success rate table
@@ -1606,7 +1684,7 @@ class AlgorithmTester:
             columns='dataset', 
             aggfunc='mean'
         )
-        success_table_file = self.results_dir / "reports" / f"success_rate_table_{timestamp}.csv"
+        success_table_file = self.results_dir / "Reports" / f"Success_rate_table_{timestamp}.csv"
         pivot_success.to_csv(success_table_file)
     
     def _print_console_summary(self, df_results: pd.DataFrame, analysis: Dict[str, Any]):
@@ -1681,12 +1759,12 @@ def main():
     print("=" * 60)
     print(f"Results will be saved in: {tester.results_dir}")
     print("Subdirectories:")
-    print("  - logs/: Execution logs")
-    print("  - errors/: JSON files with detailed error information")
-    print("  - reports/: CSV results and performance analysis")
-    print("  - cache/: Saved test results and configurations")
-    print("  - exports/: Results exported in multiple formats")
-    print("  - synthetic/: Cached synthetic datasets")
+    print("  - Logs/: Execution logs")
+    print("  - Errors/: JSON files with detailed error information")
+    print("  - Reports/: CSV results and performance analysis")
+    print("  - Cache/: Saved test results and configurations")
+    print("  - Exports/: Results exported in multiple formats")
+    print("  - Datasets/Synthetic/: Cached synthetic datasets")
     print("=" * 60)
     
     try:
@@ -1696,14 +1774,14 @@ def main():
         print("\nTesting completed successfully!")
         print(f"Results saved in: {tester.results_dir}")
         print("\nGenerated files:")
-        print("  - detailed_results_*.csv: Complete test results with all metrics")
-        print("  - summary_results_*.csv: Key performance indicators and comparisons")
-        print("  - analysis_report_*.json: Comprehensive statistical analysis")
+        print("  - Detailed_results_*.csv: Complete test results with all metrics")
+        print("  - Summary_results_*.csv: Key performance indicators and comparisons")
+        print("  - Analysis_report_*.json: Comprehensive statistical analysis")
         print("  - *_performance_table_*.csv: Algorithm vs dataset performance matrices")
-        print("  - error_*.json: Detailed error information for failed tests")
-        print("  - test_results_*.json: Cached test results for reload")
-        print("  - test_config_*.json: Test configurations for reproducibility")
-        print("  - exports/results_*.csv: Multi-format result exports")
+        print("  - Error_*.json: Detailed error information for failed tests")
+        print("  - Test_results_*.json: Cached test results for reload")
+        print("  - Test_config_*.json: Test configurations for reproducibility")
+        print("  - Exports/Results_*.csv: Multi-format result exports")
         
         # Print final statistics
         if tester.test_results:
@@ -1728,7 +1806,7 @@ def main():
     finally:
         # Save any partial results
         if tester.test_results:
-            emergency_file = tester.results_dir / f"emergency_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            emergency_file = tester.results_dir / f"Emergency_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             with open(emergency_file, 'w') as f:
                 json.dump(tester.test_results, f, indent=2, default=str)
             print(f"Emergency results saved to: {emergency_file}")
