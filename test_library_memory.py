@@ -825,7 +825,10 @@ class AlgorithmTester:
             'n_predicted_clusters': None,
             'ari_vs_expected': None,
             'nmi_vs_expected': None,
-            'metrics': {}
+            'metrics': {},
+            'model_save_success': False,
+            'model_load_success': False,
+            'model_save_path': None
         }
         
         try:
@@ -848,6 +851,60 @@ class AlgorithmTester:
                 model.fit(data_loader)
             except Exception as e:
                 raise RuntimeError(f"Failed to fit model: {str(e)}")
+            
+            # Save and load model functionality
+            try:
+                # Create Models directory if it doesn't exist
+                models_dir = self.results_dir / "Models"
+                models_dir.mkdir(exist_ok=True)
+                
+                # Define model save path
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                model_filename = f"{algorithm_name}_{dataset_name}_{optimization_method}_{timestamp}.model"
+                model_path = models_dir / model_filename
+                result['model_save_path'] = str(model_path)
+                
+                # Save model
+                logger.info(f"Saving model {algorithm_name} to {model_path}")
+                model.save(str(model_path))
+                result['model_save_success'] = True
+                logger.info(f"Model {algorithm_name} saved successfully")
+                
+                # Load model back to verify save/load functionality
+                logger.info(f"Loading model {algorithm_name} from {model_path}")
+                model_class = MODEL_REGISTRY[algorithm_name]['class']
+                loaded_model = model_class.load(str(model_path))
+                result['model_load_success'] = True
+                logger.info(f"Model {algorithm_name} loaded successfully")
+                
+                # Verify loaded model has same predictions
+                if hasattr(loaded_model, 'labels_') and loaded_model.labels_ is not None:
+                    loaded_predictions = loaded_model.labels_
+                elif hasattr(loaded_model, 'predict'):
+                    loaded_predictions = loaded_model.predict(data_loader)
+                else:
+                    loaded_predictions = None
+                
+                # Compare original and loaded model predictions if possible
+                if loaded_predictions is not None and hasattr(model, 'labels_') and model.labels_ is not None:
+                    original_predictions = model.labels_
+                    if isinstance(loaded_predictions, pd.Series):
+                        loaded_predictions = loaded_predictions.values
+                    if isinstance(original_predictions, pd.Series):
+                        original_predictions = original_predictions.values
+                    
+                    # Check if predictions match
+                    predictions_match = np.array_equal(original_predictions, loaded_predictions)
+                    result['predictions_match_after_load'] = predictions_match
+                    
+                    if predictions_match:
+                        logger.info(f"Model {algorithm_name} save/load verification successful - predictions match")
+                    else:
+                        logger.warning(f"Model {algorithm_name} save/load verification failed - predictions don't match")
+                
+            except Exception as e:
+                logger.error(f"Model save/load failed for {algorithm_name}: {e}")
+                result['model_save_load_error'] = str(e)
             
             # Get predictions
             try:
@@ -1083,6 +1140,56 @@ class AlgorithmTester:
         except Exception as e:
             logger.error(f"Failed to load test configuration: {e}")
             return None
+
+    def save_model(self, model, algorithm_name: str, dataset_name: str, 
+                   optimization_method: str = 'manual', suffix: str = '') -> Optional[str]:
+        """Save a trained model to disk."""
+        try:
+            # Create Models directory if it doesn't exist
+            models_dir = self.results_dir / "Models"
+            models_dir.mkdir(exist_ok=True)
+            
+            # Define model save path
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            model_filename = f"{algorithm_name}_{dataset_name}_{optimization_method}_{timestamp}{suffix}.model"
+            model_path = models_dir / model_filename
+            
+            # Save model
+            logger.info(f"Saving model {algorithm_name} to {model_path}")
+            model.save(str(model_path))
+            logger.info(f"Model {algorithm_name} saved successfully")
+            
+            return str(model_path)
+            
+        except Exception as e:
+            logger.error(f"Failed to save model {algorithm_name}: {e}")
+            return None
+    
+    def load_model(self, algorithm_name: str, model_path: str):
+        """Load a trained model from disk."""
+        try:
+            logger.info(f"Loading model {algorithm_name} from {model_path}")
+            
+            if not os.path.exists(model_path):
+                raise FileNotFoundError(f"Model file not found: {model_path}")
+            
+            model_class = MODEL_REGISTRY[algorithm_name]['class']
+            loaded_model = model_class.load(model_path)
+            
+            logger.info(f"Model {algorithm_name} loaded successfully")
+            return loaded_model
+            
+        except Exception as e:
+            logger.error(f"Failed to load model {algorithm_name}: {e}")
+            return None
+    
+    def list_saved_models(self) -> List[str]:
+        """List all saved model files."""
+        models_dir = self.results_dir / "Models"
+        if not models_dir.exists():
+            return []
+        
+        return [f.name for f in models_dir.glob("*.model")]
     
     def export_results_to_formats(self, formats: List[str] = ['csv', 'json', 'excel']) -> Dict[str, bool]:
         """Export test results to multiple formats."""
