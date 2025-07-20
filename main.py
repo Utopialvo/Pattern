@@ -2,7 +2,7 @@
 import sys
 import logging
 from pyspark.sql import SparkSession
-from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
+from config.registries import MODEL_REGISTRY, METRIC_REGISTRY, get_model_class
 from config.validator import load_config
 from cli.parsers import create_root_parser, create_method_subparsers
 from core.factory import factory
@@ -72,7 +72,7 @@ def main():
         normalizer = factory.create_normalizer(spark = spark, **normalizer)
 
     # Initialize core components
-    model_class = MODEL_REGISTRY[config['algorithm']]['class']
+    model_class = get_model_class(config['algorithm'])
     data_loader = factory.create_loader(
         features=config.get('features'),
         similarity=config.get('similarity'),

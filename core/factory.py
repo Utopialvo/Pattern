@@ -3,16 +3,13 @@ import pandas as pd
 from typing import Any, Union, Optional, List, Dict
 from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 from core.interfaces import ComponentFactory, ClusterModel, Metric, DataLoader, Optimizer, Normalizer, Sampler, DataVis, DataStatistics
-from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
+from config.registries import get_model_class, get_metric_class
 from data.loaders import PandasDataLoader, SparkDataLoader
 from optimization.strategies import GridSearch, RandomSearch, TPESearch
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
 from visualization.vis import Visualizer
 from stats.stat import Statistics
-
-from models import *
-from metrics import *
 
 
 class DefaultFactory(ComponentFactory):
@@ -31,22 +28,12 @@ class DefaultFactory(ComponentFactory):
         Raises:
             ValueError: For unknown algorithms or missing parameters
         """
-        if (meta := MODEL_REGISTRY.get(identifier)) is None:
-            raise ValueError(f"Unknown algorithm '{identifier}'. Available: {list(MODEL_REGISTRY)}")
-            
-        if missing := set(meta['params_help']) - config.keys():
-            raise ValueError(f"Missing required parameters for {identifier}: {missing}")
-
-        model = meta['class'](config)
-        if not isinstance(model, ClusterModel):
-            raise TypeError(f"{identifier} is not a ClusterModel subclass")
-        return model
+        cls = get_model_class(identifier)
+        return cls(config)
     
     def create_metric(self, identifier: str) -> Metric:
         """Create metric instance from registry."""
-        if (metric_cls := METRIC_REGISTRY.get(identifier)) is None:
-            raise ValueError(f"Unknown metric '{identifier}'. Available: {list(METRIC_REGISTRY)}")
-        return metric_cls()
+        return get_metric_class(identifier)()
     
     def create_optimizer(self, identifier: str, **kwargs) -> Optimizer:
         """Create hyperparameter optimization strategy."""

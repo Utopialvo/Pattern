@@ -1,8 +1,8 @@
-import glob
-import importlib
-import os
+# import glob
+# import importlib
+# import os
 
-modules = glob.glob(os.path.dirname(__file__)+'/*.py')
-for module in modules:
-    if not module.endswith('__init__.py'):
-        importlib.import_module(f'models.{os.path.basename(module)[:-3]}')
+# modules = glob.glob(os.path.dirname(__file__)+'/*.py')
+# for module in modules:
+#     if not module.endswith('__init__.py'):
+#         importlib.import_module(f'models.{os.path.basename(module)[:-3]}')

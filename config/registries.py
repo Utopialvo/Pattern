@@ -1,44 +1,92 @@
 # Файл: config/registries.py
-from typing import Type, Dict, Any
-from core.interfaces import ClusterModel, Metric
+import json
+import os
+import importlib
+from typing import Dict, Any, Type
+
+REGISTRY_DIR = "config/registries"
+MODEL_REGISTRY_FILE = os.path.join(REGISTRY_DIR, "models_registry.json")
+METRIC_REGISTRY_FILE = os.path.join(REGISTRY_DIR, "metrics_registry.json")
 
 MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {}
-METRIC_REGISTRY: Dict[str, Type[Metric]] = {}
+METRIC_REGISTRY: Dict[str, Dict[str, Any]] = {}
+
+def load_registries():
+    """Загрузка реестров из JSON-файлов"""
+    global MODEL_REGISTRY, METRIC_REGISTRY
+    
+    if os.path.exists(MODEL_REGISTRY_FILE):
+        with open(MODEL_REGISTRY_FILE, 'r') as f:
+            MODEL_REGISTRY = json.load(f)
+    
+    if os.path.exists(METRIC_REGISTRY_FILE):
+        with open(METRIC_REGISTRY_FILE, 'r') as f:
+            METRIC_REGISTRY = json.load(f)
 
 def register_model(name: str, params_help: Dict[str, str]):
-    """Decorator for registering clustering models in the system.
-    
-    Args:
-        name: Unique model identifier for configurations
-        params_help: Parameter descriptions for help system
-            (keys = parameter names, values = descriptions)
-    
-    Returns:
-        Class decorator that registers the model
-    """
-    def decorator(cls: Type[ClusterModel]) -> Type[ClusterModel]:
-        """Inner decorator that performs actual class registration."""
-        if not issubclass(cls, ClusterModel):
-            raise TypeError(f"{cls.__name__} must subclass ClusterModel")
+    """Декоратор для регистрации моделей"""
+    def decorator(cls: Type) -> Type:
+        # Обновление файла реестра
+        entry = {
+            "module": cls.__module__,
+            "class_name": cls.__name__,
+            "params_help": params_help
+        }
         
-        MODEL_REGISTRY[name] = {'class': cls, 'params_help': params_help}
+        registry = {}
+        if os.path.exists(MODEL_REGISTRY_FILE):
+            with open(MODEL_REGISTRY_FILE, 'r') as f:
+                registry = json.load(f)
+        
+        registry[name] = entry
+        
+        os.makedirs(REGISTRY_DIR, exist_ok=True)
+        with open(MODEL_REGISTRY_FILE, 'w') as f:
+            json.dump(registry, f, indent=2)
+        
         return cls
     return decorator
 
 def register_metric(name: str):
-    """Decorator for registering clustering quality metrics.
-    
-    Args:
-        name: Unique metric identifier for configurations
-    
-    Returns:
-        Class decorator that registers the metric
-    """
-    def decorator(cls: Type[Metric]) -> Type[Metric]:
-        """Inner decorator that performs actual class registration."""
-        if not issubclass(cls, Metric):
-            raise TypeError(f"{cls.__name__} must subclass Metric")
+    """Декоратор для регистрации метрик"""
+    def decorator(cls: Type) -> Type:
+        # Обновление файла реестра
+        entry = {
+            "module": cls.__module__,
+            "class_name": cls.__name__
+        }
         
-        METRIC_REGISTRY[name] = cls
+        registry = {}
+        if os.path.exists(METRIC_REGISTRY_FILE):
+            with open(METRIC_REGISTRY_FILE, 'r') as f:
+                registry = json.load(f)
+        
+        registry[name] = entry
+        
+        os.makedirs(REGISTRY_DIR, exist_ok=True)
+        with open(METRIC_REGISTRY_FILE, 'w') as f:
+            json.dump(registry, f, indent=2)
+        
         return cls
     return decorator
+
+def get_model_class(identifier: str) -> Type:
+    """Динамическая загрузка класса модели"""
+    if identifier not in MODEL_REGISTRY:
+        raise ValueError(f"Model '{identifier}' not found in registry")
+    
+    entry = MODEL_REGISTRY[identifier]
+    module = importlib.import_module(entry["module"])
+    return getattr(module, entry["class_name"])
+
+def get_metric_class(identifier: str) -> Type:
+    """Динамическая загрузка класса метрики"""
+    if identifier not in METRIC_REGISTRY:
+        raise ValueError(f"Metric '{identifier}' not found in registry")
+    
+    entry = METRIC_REGISTRY[identifier]
+    module = importlib.import_module(entry["module"])
+    return getattr(module, entry["class_name"])
+
+# Инициализация при импорте
+load_registries()

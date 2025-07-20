@@ -2,7 +2,8 @@
 from __future__ import annotations
 from typing import Union, Dict, Any, List, Optional
 from pyspark.sql import SparkSession
-from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
+# from config.registries import MODEL_REGISTRY, METRIC_REGISTRY
+from config.registries import get_model_class
 from core.interfaces import ComponentFactory, ClusterModel
 from preprocessing.normalizers import SparkNormalizer, PandasNormalizer
 from preprocessing.samplers import SparkSampler, PandasSampler
@@ -71,7 +72,7 @@ def optimizing_pipeline(
             raise ValueError(f"Empty values for {param}")
 
     # Component initialization
-    model_class = MODEL_REGISTRY[algorithm]['class']
+    model_class = get_model_class(algorithm)
     data_loader = used_factory.create_loader(
         features = features_src, 
         similarity = similarity_src,

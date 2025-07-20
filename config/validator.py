@@ -11,16 +11,17 @@ def validate_config(config: Dict[str, Any]) -> None:
         
     Raises:
         ValueError: For any configuration integrity issues
-    """
-    required = {'data_source', 'features', 'similarity', 'algorithm', 'params', 'metric'}
-    if missing := required - config.keys():
-        raise ValueError(f"Missing required fields: {missing}")
-    
+    """    
     if config['algorithm'] not in MODEL_REGISTRY:
         raise ValueError(f"Unregistered algorithm: {config['algorithm']}")
     
     if config['metric'] not in METRIC_REGISTRY:
         raise ValueError(f"Unregistered metric: {config['metric']}")
+
+    required = {'data_source', 'features', 'similarity', 'algorithm', 'params', 'metric'}
+    if missing := required - config.keys():
+        raise ValueError(f"Missing required fields: {missing}")
+
 
 def load_config(path: str) -> Dict[str, Any]:
     """Load and validate configuration from JSON file.
