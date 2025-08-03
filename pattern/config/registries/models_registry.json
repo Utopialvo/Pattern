@@ -1,0 +1,50 @@
+{
+  "kmeans": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/models.attribute",
+    "class_name": "SklearnKMeans",
+    "params_help": {
+      "n_clusters": "Number of clusters (positive integer)",
+      "init": "Initialization method [k-means++, random]",
+      "max_iter": "Maximum iterations (positive integer)"
+    }
+  },
+  "dbscan": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/models.attribute",
+    "class_name": "SklearnDBSCAN",
+    "params_help": {
+      "eps": "Maximum distance between samples (positive float)",
+      "min_samples": "Minimum samples in neighborhood (positive integer)"
+    }
+  },
+  "dmon": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/models.ag",
+    "class_name": "DMoN",
+    "params_help": {
+      "num_clusters": "Number of target clusters (positive integer)",
+      "hidden_dim": "GCN hidden dimension size (positive integer)",
+      "lambda_": "Loss coefficients dict {modularity: float, collapse: float, distance: float, variance: float, entropy: float}",
+      "epochs": "Training iterations (positive integer)",
+      "lr": "Learning rate (positive float)",
+      "dropout": "Dropout probability (0.0-1.0)"
+    }
+  },
+  "louvain": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/models.network",
+    "class_name": "LouvainCluster",
+    "params_help": {
+      "resolution": "Community size control (float, default=1.0)",
+      "threshold": "Merge threshold for communities (float, default=0.0000001)",
+      "max_level": "Max recursion level (int, default=15)"
+    }
+  },
+  "spectral": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/models.network",
+    "class_name": "SpectralGraphCluster",
+    "params_help": {
+      "n_clusters": "Number of clusters (positive integer)",
+      "n_neighbors": "Neighbors for affinity matrix (int, optional)",
+      "assign_labels": "Label assignment strategy (kmeans, discretize, etc)",
+      "degree": "Degree of the polynomial kernel (int, optional)"
+    }
+  }
+}

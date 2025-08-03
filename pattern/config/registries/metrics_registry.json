@@ -1,0 +1,14 @@
+{
+  "attribute": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/metrics.quality",
+    "class_name": "AttributeMetric"
+  },
+  "graph": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/metrics.quality",
+    "class_name": "GraphMetric"
+  },
+  "attribute-graph": {
+    "module": "/home/jovyan/work/Pattern/pattern/config/registries/metrics.quality",
+    "class_name": "AttributeGraphMetric"
+  }
+}

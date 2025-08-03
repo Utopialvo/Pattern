@@ -48,6 +48,14 @@ Unsupervised learning library:
 git clone https://github.com/Utopialvo/Pattern.git
 cd Pattern
 pip install -r requirements.txt
+pip install .
+```
+
+## Unstallation
+
+```bash
+pip uninstall patternlib
+
 ```
 
 ## Usage
@@ -55,20 +63,20 @@ pip install -r requirements.txt
 ### Run Pipeline
 
 ```bash
-python main.py -c config.json
+pattern -c config.json
 ```
 
 ### Get Help
 
 ```bash
 # Main help
-python main.py -h
+pattern -h
 
 # List components
-python main.py -l
+pattern -l
 
 # Algorithm-specific help
-python main.py kmeans -h
+pattern kmeans -h
 ```
 
 ## Project Structure
@@ -84,7 +92,8 @@ Pattern/
 ├── config/            # Configuration validation
 ├── cli/               # Command line interface
 ├── visualization/     # Result modeling visualization
-├── stats/             # Cluster statistical analysis
+├── stats/             # Cluster statistical analysis and compere clusters results
+├── scripts/           # Script for generating registries
 ├── main.py            # Entry point
 ├── README.md          # Project documentation
 ├── config.json        # Example configuration
